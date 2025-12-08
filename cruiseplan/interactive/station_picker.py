@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 
 # Local Integrations
-from cruiseplan.data.bathymetry import bathymetry
+from cruiseplan.data.bathymetry import DEPTH_CONTOURS, bathymetry
 from cruiseplan.data.pangaea import merge_campaign_tracks
 from cruiseplan.utils.config import format_station_for_yaml, save_cruise_config
 
@@ -44,6 +44,7 @@ class StationPicker:
         # Data layers
         self.campaigns = merge_campaign_tracks(campaign_data) if campaign_data else []
         self.campaign_artists = {}
+        self.style_gen = self._create_style_generator()
 
         # UI Components
         self.fig = None
@@ -53,16 +54,54 @@ class StationPicker:
         self.status_text = None
         self.check_buttons = None
 
-        self.style_gen = self._create_style_generator()
-
         self._setup_interface()
+        self.ax_map.set_xlim(-60, -10)
+        self.ax_map.set_ylim(40, 65)
+
+        self._plot_bathymetry()
         self._connect_events()
+
         self._plot_initial_campaigns()
 
         # Initial View
-        self.ax_map.set_xlim(-60, -10)
-        self.ax_map.set_ylim(40, 65)
         self._update_aspect_ratio()
+
+    def _plot_bathymetry(self):
+        """Fetches and renders bathymetry contours."""
+        # Define region to fetch (cover likely area)
+        # Get current view limits
+        xmin, xmax = self.ax_map.get_xlim()
+        ymin, ymax = self.ax_map.get_ylim()
+
+        #  Add a 10-degree buffer so user can pan slightly
+        buffer = 10
+        lon_min, lon_max = xmin - buffer, xmax + buffer
+        lat_min, lat_max = ymin - buffer, ymax + buffer
+
+        print("Rendering bathymetry layers...")
+
+        xx, yy, zz = bathymetry.get_grid_subset(
+            lat_min, lat_max, lon_min, lon_max, stride=10
+        )
+
+        # 1. Filled Contours (The "Map" feel)
+        # Using a standard ocean colormap
+        self.ax_map.contourf(
+            xx,
+            yy,
+            zz,
+            levels=[-6000, -4000, -2000, -1000, -200, 0],
+            cmap="Blues_r",
+            alpha=0.4,
+        )
+
+        # 2. Line Contours (The "Scientific" context)
+        cs = self.ax_map.contour(
+            xx, yy, zz, levels=DEPTH_CONTOURS, colors="gray", linewidths=0.5, alpha=0.6
+        )
+
+        # Add labels to contour lines
+        self.ax_map.clabel(cs, inline=True, fontsize=8, fmt="%d")
 
     def _unbind_default_keys(self):
         """Removes conflicting default keymaps from Matplotlib."""
@@ -125,7 +164,7 @@ class StationPicker:
         self.ax_map = self.fig.add_subplot(gs[0, 1])
         self.ax_map.set_xlabel("Longitude")
         self.ax_map.set_ylabel("Latitude")
-        self.ax_map.grid(True, linestyle="--", alpha=0.5)
+        self.ax_map.grid(True, linestyle=":", alpha=0.3, color="black")
         self.ax_map.set_title("Station Planning Map")
 
         # 3. Controls
@@ -267,6 +306,7 @@ class StationPicker:
                 self.transects.remove(item_data)
 
         self._update_status_display(message=f"Removed last {item_type}")
+        self.ax_map.figure.canvas.draw_idle()
 
     def _on_click(self, event):
         if event.inaxes != self.ax_map or self.mode == "navigation":
@@ -301,7 +341,6 @@ class StationPicker:
             (artist,) = self.ax_map.plot(
                 [start_lon, lon], [start_lat, lat], "b-", linewidth=2, zorder=9
             )
-
             data = {
                 "start": {"lat": start_lat, "lon": start_lon},
                 "end": {"lat": lat, "lon": lon},

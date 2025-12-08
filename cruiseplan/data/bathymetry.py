@@ -10,11 +10,16 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 # Constants
-ETOPO_URL = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_bed_elev_netcdf/ETOPO_2022_v1_60s_N90W180_bed.nc"
+# Primary: NGDC (National Geophysical Data Center)
+# Backup: NCEI (National Centers for Environmental Information)
+ETOPO_URLS = [
+    "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_bed_elev_netcdf/ETOPO_2022_v1_60s_N90W180_bed.nc",
+    "https://www.ncei.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_bed_elev_netcdf/ETOPO_2022_v1_60s_N90W180_bed.nc",
+]
 ETOPO_FILENAME = "ETOPO_2022_v1_60s_N90W180_bed.nc"
 
 # Constants from Spec
-DEPTH_CONTOURS = [0, -50, -100, -200, -500, -1000, -2000, -3000, -4000, -5000]
+DEPTH_CONTOURS = [-5000, -4000, -3000, -2000, -1000, -500, -200, -100, -50, 0]
 
 
 class BathymetryManager:
@@ -48,12 +53,10 @@ class BathymetryManager:
             try:
                 # Load using netCDF4 for efficient lazy slicing
                 self._dataset = nc.Dataset(file_path, "r")
-
                 # Cache coordinate arrays for fast search
                 # (These are 1D arrays, so they fit easily in memory)
                 self._lats = self._dataset.variables["lat"][:]
                 self._lons = self._dataset.variables["lon"][:]
-
                 self._is_mock = False
                 logger.info(f"✅ Loaded bathymetry from {file_path}")
             except Exception as e:
@@ -82,6 +85,49 @@ class BathymetryManager:
             logger.error(f"Error interpolating depth at {lat}, {lon}: {e}")
             return -9999.0
 
+    def get_grid_subset(self, lat_min, lat_max, lon_min, lon_max, stride=1):
+        """
+        Returns (lons, lats, z) 2D arrays for contour plotting.
+        Supports 'stride' to downsample large regions for performance.
+        """
+        if self._is_mock:
+            # Generate synthetic grid
+            lat_range = np.linspace(lat_min, lat_max, 100)
+            lon_range = np.linspace(lon_min, lon_max, 100)
+            xx, yy = np.meshgrid(lon_range, lat_range)
+            # Same formula as get_mock_depth but vectorized
+            zz = -((np.abs(yy) * 100) + (np.abs(xx) * 50)) % 4000 - 100
+            return xx, yy, zz
+
+        # Real Data Slicing
+        # Find indices
+        lat_idx_min = np.searchsorted(self._lats, lat_min)
+        lat_idx_max = np.searchsorted(self._lats, lat_max)
+        lon_idx_min = np.searchsorted(self._lons, lon_min)
+        lon_idx_max = np.searchsorted(self._lons, lon_max)
+
+        # Handle edge cases (if requested area is outside dataset)
+        lat_idx_min = max(0, min(lat_idx_min, len(self._lats) - 1))
+        lat_idx_max = max(0, min(lat_idx_max, len(self._lats) - 1))
+        lon_idx_min = max(0, min(lon_idx_min, len(self._lons) - 1))
+        lon_idx_max = max(0, min(lon_idx_max, len(self._lons) - 1))
+
+        if lat_idx_min >= lat_idx_max or lon_idx_min >= lon_idx_max:
+            # Return empty grid if invalid slice
+            return np.array([]), np.array([]), np.array([])
+
+        # Slice with stride
+        lats = self._lats[lat_idx_min:lat_idx_max:stride]
+        lons = self._lons[lon_idx_min:lon_idx_max:stride]
+
+        # Read subset from disk
+        z = self._dataset.variables["z"][
+            lat_idx_min:lat_idx_max:stride, lon_idx_min:lon_idx_max:stride
+        ]
+
+        xx, yy = np.meshgrid(lons, lats)
+        return xx, yy, z
+
     def _interpolate_depth(self, lat: float, lon: float) -> float:
         """
         Performs bilinear interpolation logic.
@@ -89,7 +135,6 @@ class BathymetryManager:
         # 1. Bounds Check
         if lat < self._lats[0] or lat > self._lats[-1]:
             return -9999.0
-        # Simple wrap handling could be added here
         if lon < self._lons[0] or lon > self._lons[-1]:
             return -9999.0
 
@@ -107,7 +152,6 @@ class BathymetryManager:
 
         # Read only these 4 values from disk
         z_grid = self._dataset.variables["z"][y_indices, x_indices]
-
         y_coords = self._lats[y_indices]
         x_coords = self._lons[x_indices]
 
@@ -151,28 +195,52 @@ def download_bathymetry(target_dir: str = "data"):
 
     local_path = output_dir / ETOPO_FILENAME
 
-    print(f"Downloading ETOPO dataset to {local_path}...")
-    try:
-        response = requests.get(ETOPO_URL, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get("Content-Length", 0))
+    if local_path.exists():
+        print(f"File already exists at {local_path}")
+        return
 
-        with (
-            open(local_path, "wb") as file,
-            tqdm(
-                desc="Downloading ETOPO",
-                total=total_size,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as bar,
-        ):
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-                bar.update(len(chunk))
-        print("\nDownload complete!")
-    except Exception as e:
-        print(f"\nDownload failed: {e}")
+    print(f"Downloading ETOPO dataset to {local_path}...")
+
+    for url in ETOPO_URLS:
+        try:
+            print(f"Attempting download from: {url}")
+            response = requests.get(
+                url, stream=True, timeout=10
+            )  # 10s timeout for connect
+            response.raise_for_status()
+
+            total_size = int(response.headers.get("Content-Length", 0))
+
+            with (
+                open(local_path, "wb") as file,
+                tqdm(
+                    desc="Downloading ETOPO",
+                    total=total_size,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                ) as bar,
+            ):
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+                    bar.update(len(chunk))
+
+            print("\nDownload complete!")
+            return  # Success, exit function
+        except Exception as e:
+            print(f"Failed to download from {url}")
+            print(f"   Error: {e}")
+            if local_path.exists():
+                local_path.unlink()  # Cleanup partial download
+
+    # If we reach here, all URLs failed
+    print("\n" + "=" * 60)
+    print("⛔ AUTOMATIC DOWNLOAD FAILED")
+    print("=" * 60)
+    print("Please download the file manually using your browser:")
+    print(f"URL: {ETOPO_URLS[0]}")
+    print(f"Save to: {local_path}")
+    print("=" * 60 + "\n")
 
 
 # Singleton instance
