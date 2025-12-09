@@ -7,6 +7,8 @@ import numpy as np
 import requests
 from tqdm import tqdm
 
+from cruiseplan.utils.constants import FALLBACK_DEPTH
+
 logger = logging.getLogger(__name__)
 
 # Constants
@@ -83,7 +85,7 @@ class BathymetryManager:
             return self._interpolate_depth(lat, lon)
         except Exception as e:
             logger.error(f"Error interpolating depth at {lat}, {lon}: {e}")
-            return -9999.0
+            return FALLBACK_DEPTH
 
     def get_grid_subset(self, lat_min, lat_max, lon_min, lon_max, stride=1):
         """
@@ -107,10 +109,10 @@ class BathymetryManager:
         lon_idx_max = np.searchsorted(self._lons, lon_max)
 
         # Handle edge cases (if requested area is outside dataset)
-        lat_idx_min = max(0, min(lat_idx_min, len(self._lats) - 1))
-        lat_idx_max = max(0, min(lat_idx_max, len(self._lats) - 1))
-        lon_idx_min = max(0, min(lon_idx_min, len(self._lons) - 1))
-        lon_idx_max = max(0, min(lon_idx_max, len(self._lons) - 1))
+        lat_idx_min = max(0, lat_idx_min)
+        lat_idx_max = min(lat_idx_max, len(self._lats))
+        lon_idx_min = max(0, lon_idx_min)
+        lon_idx_max = min(lon_idx_max, len(self._lons))
 
         if lat_idx_min >= lat_idx_max or lon_idx_min >= lon_idx_max:
             # Return empty grid if invalid slice
@@ -134,42 +136,54 @@ class BathymetryManager:
         """
         # 1. Bounds Check
         if lat < self._lats[0] or lat > self._lats[-1]:
-            return -9999.0
+            return FALLBACK_DEPTH
         if lon < self._lons[0] or lon > self._lons[-1]:
-            return -9999.0
+            return FALLBACK_DEPTH
 
-        # 2. Find Indices (Fast search on sorted arrays)
-        lat_idx = np.searchsorted(self._lats, lat)
+        # 2. Find 2x2 Grid Indices
+        # np.searchsorted gives the index *after* the point, so the grid is defined by [idx-1, idx]
         lon_idx = np.searchsorted(self._lons, lon)
+        lat_idx = np.searchsorted(self._lats, lat)
 
-        # Ensure indices are within bounds for 2x2 grid
-        lat_idx = max(1, min(lat_idx, len(self._lats) - 1))
-        lon_idx = max(1, min(lon_idx, len(self._lons) - 1))
+        # Ensure indices are within bounds for the grid corners
+        x0_idx = lon_idx - 1
+        x1_idx = lon_idx
+        y0_idx = lat_idx - 1
+        y1_idx = lat_idx
+
+        # Check against array limits (safety check, should be covered by bounds check)
+        if (
+            x1_idx >= len(self._lons)
+            or y1_idx >= len(self._lats)
+            or x0_idx < 0
+            or y0_idx < 0
+        ):
+            return FALLBACK_DEPTH
 
         # 3. Extract 2x2 Grid (Lazy Load from Disk)
-        y_indices = [lat_idx - 1, lat_idx]
-        x_indices = [lon_idx - 1, lon_idx]
+        # Note: z(lat, lon) -> z(y, x)
+        z_grid = self._dataset.variables["z"][[y0_idx, y1_idx], [x0_idx, x1_idx]]
+        y_coords = self._lats[[y0_idx, y1_idx]]
+        x_coords = self._lons[[x0_idx, x1_idx]]
 
-        # Read only these 4 values from disk
-        z_grid = self._dataset.variables["z"][y_indices, x_indices]
-        y_coords = self._lats[y_indices]
-        x_coords = self._lons[x_indices]
+        # 4. Bilinear Interpolation (Corrected Formula)
+        x0, x1 = x_coords[0], x_coords[1]
+        y0, y1 = y_coords[0], y_coords[1]
+        z00, z01, z10, z11 = z_grid[0, 0], z_grid[0, 1], z_grid[1, 0], z_grid[1, 1]
 
-        # 4. Bilinear Interpolation
-        dy = y_coords[1] - y_coords[0]
-        dx = x_coords[1] - x_coords[0]
+        # Check for zero spacing
+        if x1 == x0 or y1 == y0:
+            return float(z00)  # Fallback to nearest grid point
 
-        if dy == 0 or dx == 0:
-            return float(z_grid[0, 0])
+        u = (lon - x0) / (x1 - x0)  # Fractional distance in x
+        v = (lat - y0) / (y1 - y0)  # Fractional distance in y
 
-        u = (lon - x_coords[0]) / dx
-        v = (lat - y_coords[0]) / dy
-
+        # Bilinear interpolation formula
         depth = (
-            (1 - u) * (1 - v) * z_grid[0, 0]
-            + u * (1 - v) * z_grid[0, 1]
-            + (1 - u) * v * z_grid[1, 0]
-            + u * v * z_grid[1, 1]
+            z00 * (1 - u) * (1 - v)
+            + z10 * u * (1 - v)
+            + z01 * (1 - u) * v
+            + z11 * u * v
         )
 
         return float(depth)

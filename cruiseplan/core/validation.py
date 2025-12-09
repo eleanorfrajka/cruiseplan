@@ -4,6 +4,15 @@ from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
+# cruiseplan/core/validation.py
+
+
+# --- Custom Exception ---
+class CruiseConfigurationError(Exception):
+    """Raised when cruise configuration is invalid or cannot be processed."""
+
+    pass
+
 
 # --- Enums ---
 class StrategyEnum(str, Enum):
