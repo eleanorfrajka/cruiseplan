@@ -243,11 +243,12 @@ def test_remove_specific_station_by_click(picker):
     # Ensure the remaining station is Station 1 (-52.0)
     assert picker.stations[0]["lon"] == -52.0
 
+
 def test_save_to_yaml_triggers_io(picker):
     """Test that _save_to_yaml correctly formats data and calls the save function."""
     # 1. Setup Data
-    picker.stations = [{'lat': 10.0, 'lon': -10.0, 'depth': -500.0}]
-    picker.transects = [] # Keep it simple
+    picker.stations = [{"lat": 10.0, "lon": -10.0, "depth": -500.0}]
+    picker.transects = []  # Keep it simple
     picker.output_file = "test_cruise.yaml"
 
     # 2. Mock the external helpers
@@ -255,8 +256,12 @@ def test_save_to_yaml_triggers_io(picker):
     # We mock 'save_cruise_config' to ensure it gets called
 
     # Note: Adjust path to where these are imported in station_picker.py
-    with patch("cruiseplan.interactive.station_picker.format_station_for_yaml") as mock_fmt, \
-         patch("cruiseplan.interactive.station_picker.save_cruise_config") as mock_save:
+    with (
+        patch(
+            "cruiseplan.interactive.station_picker.format_station_for_yaml"
+        ) as mock_fmt,
+        patch("cruiseplan.interactive.station_picker.save_cruise_config") as mock_save,
+    ):
 
         mock_fmt.return_value = {"id": "STN_01", "lat": 10.0}
 
@@ -271,9 +276,9 @@ def test_save_to_yaml_triggers_io(picker):
         mock_save.assert_called_once()
 
         # specific check: Did it pass the right data structure?
-        saved_data = mock_save.call_args[0][0] # First arg of the call
+        saved_data = mock_save.call_args[0][0]  # First arg of the call
         assert saved_data["stations"][0]["id"] == "STN_01"
-        assert saved_data["cruise_name"] == "Interactive_Session" # or whatever default
+        assert saved_data["cruise_name"] == "Interactive_Session"  # or whatever default
 
         # Check filename
         assert mock_save.call_args[0][1] == "test_cruise.yaml"
@@ -284,19 +289,20 @@ def test_handle_line_click_workflow(picker):
     Test that two calls to _handle_line_click correctly create one transect,
     store history, and reset the state.
     """
-
     # Use a dummy artist for the final blue line
     mock_final_artist = MagicMock()
 
     # --- SETUP ---
     # 1. Ensure the picker starts in the correct state
-    picker.mode = 'line'
+    picker.mode = "line"
     picker.line_start = None
 
     # 2. Mock external function calls and internal cleanup method
     # Patch the plotting function to return the artists we expect.
-    with patch.object(picker.ax_map, 'plot') as mock_plot, \
-         patch.object(picker, '_reset_line_state') as mock_reset:
+    with (
+        patch.object(picker.ax_map, "plot") as mock_plot,
+        patch.object(picker, "_reset_line_state") as mock_reset,
+    ):
 
         # Configure mock_plot: First call returns the temp marker, second returns the final line
         mock_plot.side_effect = [
@@ -336,7 +342,9 @@ def test_handle_line_click_workflow(picker):
         assert len(picker.history) == 1
         history_entry = picker.history[0]
         assert history_entry[0] == "transect"
-        assert history_entry[2] is mock_final_artist # Ensure the cleanup artist is stored
+        assert (
+            history_entry[2] is mock_final_artist
+        )  # Ensure the cleanup artist is stored
 
         # 4. Plotting Verification (Final line drawn)
         # Check the *second* call to plot()

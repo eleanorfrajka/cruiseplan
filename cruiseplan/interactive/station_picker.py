@@ -482,7 +482,9 @@ class StationPicker:
             save_cruise_config(output_data, self.output_file)
 
             # Success Feedback
-            print(f"✅ Saved {len(yaml_stations)} stations, {len(yaml_sections)} sections.")
+            print(
+                f"✅ Saved {len(yaml_stations)} stations, {len(yaml_sections)} sections."
+            )
             self._update_status_display(message=f"SAVED TO {self.output_file}")
 
         except Exception as e:
@@ -515,13 +517,12 @@ class StationPicker:
                     "b--",
                     alpha=0.6,
                     linewidth=1.5,
-                    zorder=15
+                    zorder=15,
                 )
             else:
                 # Fast update
                 self.rubber_band_artist.set_data(
-                    [start_lon, end_lon],
-                    [start_lat, end_lat]
+                    [start_lon, end_lon], [start_lat, end_lat]
                 )
 
             self.ax_map.figure.canvas.draw_idle()
