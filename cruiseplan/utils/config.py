@@ -17,11 +17,19 @@ logger = logging.getLogger(__name__)
 
 def save_cruise_config(data: Dict, filepath: Union[str, Path]) -> None:
     """
-    Saves a dictionary to a YAML file, ensuring standard formatting.
+    Save a dictionary to a YAML file with standard formatting.
 
-    Args:
-        data: The dictionary containing 'stations', 'moorings', etc.
-        filepath: Destination path.
+    Parameters
+    ----------
+    data : dict
+        The dictionary containing cruise configuration data.
+    filepath : str or Path
+        Destination path for the YAML file.
+
+    Notes
+    -----
+    Ensures the parent directory exists and uses consistent YAML formatting
+    with preserved key ordering.
     """
     path = Path(filepath)
 
@@ -42,8 +50,23 @@ def save_cruise_config(data: Dict, filepath: Union[str, Path]) -> None:
 
 def format_station_for_yaml(station_data: Dict, index: int) -> Dict:
     """
-    Helper to transform internal picker data into the Spec's YAML schema.
-    Converts coordinates to native Python floats to avoid NumPy serialization.
+    Transform internal station data into the YAML schema format.
+
+    Parameters
+    ----------
+    station_data : dict
+        Internal station data from the picker interface.
+    index : int
+        Station index for naming.
+
+    Returns
+    -------
+    dict
+        Formatted station data conforming to the YAML schema.
+
+    Notes
+    -----
+    Converts coordinates to native Python floats to avoid NumPy serialization issues.
     """
     return {
         "name": f"STN_{index:03d}",
@@ -59,8 +82,23 @@ def format_station_for_yaml(station_data: Dict, index: int) -> Dict:
 
 def format_transect_for_yaml(transect_data, index):
     """
-    Formats internal transect data into the standardized YAML schema.
-    Ensures coordinates are native Python floats.
+    Format internal transect data into the standardized YAML schema.
+
+    Parameters
+    ----------
+    transect_data : dict
+        Internal transect data from the interactive interface.
+    index : int
+        Transect index for naming.
+
+    Returns
+    -------
+    dict
+        Formatted transect data conforming to the YAML schema.
+
+    Notes
+    -----
+    Ensures coordinates are native Python floats for proper YAML serialization.
     """
     return {
         "name": f"Section_{index:02d}",
@@ -84,8 +122,23 @@ def format_transect_for_yaml(transect_data, index):
 
 def format_area_for_yaml(area_data, index):
     """
-    Formats internal area survey data into the standardized YAML schema.
-    Ensures coordinates are native Python floats.
+    Format internal area survey data into the standardized YAML schema.
+
+    Parameters
+    ----------
+    area_data : dict
+        Internal area survey data from the interactive interface.
+    index : int
+        Area index for naming.
+
+    Returns
+    -------
+    dict
+        Formatted area data conforming to the YAML schema.
+
+    Notes
+    -----
+    Ensures coordinates are native Python floats for proper YAML serialization.
     """
     return {
         "name": f"Area_{index:02d}",
@@ -108,8 +161,20 @@ def format_area_for_yaml(area_data, index):
 
 class ConfigLoader:
     """
-    Utility class to load, validate, and parse a YAML cruise configuration file
-    into a structured CruiseConfig object using Pydantic.
+    Utility class to load, validate, and parse YAML cruise configuration files.
+
+    This class provides a complete workflow for loading cruise configuration data
+    from YAML files, validating it against the schema, and returning structured
+    CruiseConfig objects.
+
+    Attributes
+    ----------
+    config_path : Path
+        Path to the YAML configuration file.
+    raw_data : dict or None
+        Raw dictionary data loaded from the YAML file.
+    cruise_config : CruiseConfig or None
+        Validated and parsed configuration object.
     """
 
     def __init__(self, config_path: Union[str, Path]):
