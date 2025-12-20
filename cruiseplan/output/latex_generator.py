@@ -21,6 +21,7 @@ from jinja2 import Environment, FileSystemLoader
 from cruiseplan.calculators.scheduler import ActivityRecord
 from cruiseplan.core.validation import CruiseConfig
 from cruiseplan.utils.activity_utils import is_scientific_transit
+from cruiseplan.utils.constants import hours_to_days
 from cruiseplan.utils.coordinates import format_position_latex
 
 
@@ -114,8 +115,8 @@ class LaTeXGenerator:
         science_operations = [
             activity
             for activity in timeline
-            if activity["activity"] in ["Station", "Mooring"]
-            or activity.get("operation_type", "") in ["station", "mooring"]
+            if activity["activity"] in ["Station", "Mooring", "Area"]
+            or activity.get("operation_type", "") in ["station", "mooring", "area"]
             or is_scientific_transit(activity)  # <-- Include scientific transits
         ]
 
@@ -150,6 +151,24 @@ class LaTeXGenerator:
                         "station": str(op["label"]).replace("_", "-"),
                         "position": end_pos_str,
                         "depth_m": depth_str,
+                        "start_time": op["start_time"].strftime("%Y-%m-%d %H:%M"),
+                        "duration_hours": f"{op['duration_minutes']/60:.1f}",
+                    }
+                )
+
+            elif op["activity"] == "Area" or op.get("operation_type", "") == "area":
+                # Area operations (polygon-based operations like bathymetry surveys)
+                position_str = format_position_latex(op["lat"], op["lon"])
+                action = op.get(
+                    "action", "survey"
+                )  # Default to 'survey' if no action specified
+
+                table_rows.append(
+                    {
+                        "operation": f"Area ({action})",
+                        "station": str(op["label"]).replace("_", "-"),
+                        "position": f"Center: {position_str}",
+                        "depth_m": "Variable",  # Areas typically span multiple depths
                         "start_time": op["start_time"].strftime("%Y-%m-%d %H:%M"),
                         "duration_hours": f"{op['duration_minutes']/60:.1f}",
                     }
@@ -241,22 +260,32 @@ class LaTeXGenerator:
             a for a in all_transits if not a.get("action")
         ]  # Navigation transits don't have actions
 
-        # Simple transit categorization
+        # Calculate major port transits (departure and arrival)
+        port_departure_activities = [
+            a for a in timeline if a["activity"] == "Port_Departure"
+        ]
+        port_arrival_activities = [
+            a for a in timeline if a["activity"] == "Port_Arrival"
+        ]
+
+        # Transit categorization using correct port activities
         transit_to_area_h = 0.0
         transit_from_area_h = 0.0
         transit_within_area_h = 0.0
 
+        # Transit to area = departure port activity duration
+        if port_departure_activities:
+            transit_to_area_h = port_departure_activities[0]["duration_minutes"] / 60
+
+        # Transit from area = arrival port activity duration
+        if port_arrival_activities:
+            transit_from_area_h = port_arrival_activities[0]["duration_minutes"] / 60
+
+        # Within area = navigation transits between operations
         if navigation_transits:
-            # First transit is to area, last is from area, rest are within area
-            if len(navigation_transits) >= 1:
-                transit_to_area_h = navigation_transits[0]["duration_minutes"] / 60
-            if len(navigation_transits) >= 2:
-                transit_from_area_h = navigation_transits[-1]["duration_minutes"] / 60
-            if len(navigation_transits) > 2:
-                within_transits = navigation_transits[1:-1]
-                transit_within_area_h = (
-                    sum(t["duration_minutes"] for t in within_transits) / 60
-                )
+            transit_within_area_h = (
+                sum(t["duration_minutes"] for t in navigation_transits) / 60
+            )
 
         total_navigation_transit_h = (
             transit_to_area_h + transit_from_area_h + transit_within_area_h
@@ -264,94 +293,6 @@ class LaTeXGenerator:
 
         # Generate work days rows for the timeline
         summary_rows = self._generate_work_days_rows_for_timeline(timeline)
-
-        # 2. Station Operations
-        if station_activities:
-            summary_rows.append(
-                {
-                    "area": "",  # Area will be populated by caller for multi-leg
-                    "activity": "CTD/Station Operations",
-                    "duration_h": f"{station_duration_h:.1f}",
-                    "transit_h": "",  # No transit time for this row
-                    "notes": f"{len(station_activities)} stations",
-                }
-            )
-
-        # 3. Mooring Operations
-        if mooring_activities:
-            summary_rows.append(
-                {
-                    "area": "",  # Area will be populated by caller for multi-leg
-                    "activity": "Mooring Operations",
-                    "duration_h": f"{mooring_duration_h:.1f}",
-                    "transit_h": "",  # No transit time for this row
-                    "notes": f"{len(mooring_activities)} operations",
-                }
-            )
-
-        # 4. Scientific Transits (Grouped by action)
-        # Sort keys for predictable output
-        sorted_actions = sorted(scientific_op_durations_h.keys())
-        for action in sorted_actions:
-            duration_h = scientific_op_durations_h[action]
-            display_name = ACTION_TO_DISPLAY_NAME.get(action, f"{action} Operations")
-
-            # Count the number of segments for the notes field
-            num_activities = len(
-                [a for a in scientific_transits if a.get("action") == action]
-            )
-
-            summary_rows.append(
-                {
-                    "area": "",  # Area will be populated by caller for multi-leg
-                    "activity": display_name,
-                    "duration_h": f"{duration_h:.1f}",
-                    "transit_h": "",  # Scientific transit duration counts as operation time
-                    "notes": f"{num_activities} segments",
-                }
-            )
-
-        # 5. Scientific survey (Area)
-        if area_activities:
-            summary_rows.append(
-                {
-                    "activity": "Area Survey Operations",
-                    "duration_h": f"{area_duration_h:.1f}",
-                    "transit_h": "",  # No transit time for this row
-                    "notes": f"{len(area_activities)} areas",
-                }
-            )
-
-        # 6. Navigation Transit (Within Area)
-        if transit_within_area_h > 0:
-            summary_rows.append(
-                {
-                    "activity": "Transit within area",
-                    "duration_h": f"{transit_within_area_h:.1f}",
-                    "transit_h": "",  # No operation duration
-                    "notes": "Between operations",
-                }
-            )
-
-        # 7. Navigation Transit (From Area)
-        if transit_from_area_h > 0:
-            # Find last operational activity (non-port) as working area origin
-            last_operation = None
-            for activity in reversed(timeline):
-                if activity["activity"] not in ["Port_Departure", "Port_Arrival"]:
-                    last_operation = activity
-                    break
-            origin = last_operation["label"] if last_operation else "working area"
-
-            summary_rows.append(
-                {
-                    "area": "",  # Area will be populated by caller for multi-leg
-                    "activity": "Transit from area",
-                    "duration_h": "",  # No operation duration
-                    "transit_h": f"{transit_from_area_h:.1f}",
-                    "notes": f"{origin} to arrival port",
-                }
-            )
 
         # Calculate totals
         total_operation_duration_h = (
@@ -365,7 +306,7 @@ class LaTeXGenerator:
             total_navigation_transit_h  # Only pure navigation transit duration
         )
         total_duration_h = total_operation_duration_h + total_transit_h
-        total_days = total_duration_h / 24
+        total_days = hours_to_days(total_duration_h)
 
         paginated_data = self._paginate_data(summary_rows, "work_days")
 
@@ -412,7 +353,7 @@ class LaTeXGenerator:
                     total_transit_h += float(row["transit_h"])
 
             total_duration_h = total_operation_duration_h + total_transit_h
-            total_days = total_duration_h / 24
+            total_days = hours_to_days(total_duration_h)
 
             paginated_data = self._paginate_data(summary_rows, "work_days")
 
@@ -475,7 +416,7 @@ class LaTeXGenerator:
                     total_transit_h += float(row["transit_h"])
 
         total_duration_h = total_operation_duration_h + total_transit_h
-        total_days = total_duration_h / 24
+        total_days = hours_to_days(total_duration_h)
 
         paginated_data = self._paginate_data(all_summary_rows, "work_days")
 
@@ -533,18 +474,27 @@ class LaTeXGenerator:
         transit_from_area_h = 0.0
         transit_within_area_h = 0.0
 
+        # Calculate major port transits (departure and arrival)
+        port_departure_activities = [
+            a for a in timeline if a["activity"] == "Port_Departure"
+        ]
+        port_arrival_activities = [
+            a for a in timeline if a["activity"] == "Port_Arrival"
+        ]
+
+        # Transit to area = departure port activity duration
+        if port_departure_activities:
+            transit_to_area_h = port_departure_activities[0]["duration_minutes"] / 60
+
+        # Transit from area = arrival port activity duration
+        if port_arrival_activities:
+            transit_from_area_h = port_arrival_activities[0]["duration_minutes"] / 60
+
+        # Within area = navigation transits between operations
         if navigation_transits:
-            # First navigation transit is to working area, last is from working area
-            if len(navigation_transits) >= 1:
-                transit_to_area_h = navigation_transits[0]["duration_minutes"] / 60
-            if len(navigation_transits) >= 2:
-                transit_from_area_h = navigation_transits[-1]["duration_minutes"] / 60
-            # Any middle navigation transits are within area
-            if len(navigation_transits) > 2:
-                middle_nav_transits = navigation_transits[1:-1]
-                transit_within_area_h = (
-                    sum(a["duration_minutes"] for a in middle_nav_transits) / 60
-                )
+            transit_within_area_h = (
+                sum(t["duration_minutes"] for t in navigation_transits) / 60
+            )
 
         total_navigation_transit_h = transit_to_area_h + transit_from_area_h
 
