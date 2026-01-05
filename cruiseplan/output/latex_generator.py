@@ -19,10 +19,10 @@ from typing import Any, Dict, List
 from jinja2 import Environment, FileSystemLoader
 
 from cruiseplan.calculators.scheduler import ActivityRecord
-from cruiseplan.core.validation import CruiseConfig
 from cruiseplan.utils.activity_utils import is_scientific_operation
 from cruiseplan.utils.constants import hours_to_days
 from cruiseplan.utils.coordinates import format_position_latex
+from cruiseplan.validation import CruiseConfig
 
 
 def _format_depth_for_latex(activity: dict) -> str:
@@ -139,7 +139,9 @@ class LaTeXGenerator:
         science_operations = [
             activity
             for activity in timeline
-            if is_scientific_operation(activity) and activity.get("activity") != "Port"
+            if is_scientific_operation(activity)
+            and not activity.get("activity", "").startswith("Port")
+            and activity.get("op_type") != "port"
         ]
 
         # Format rows for the LaTeX template
@@ -572,7 +574,7 @@ def generate_latex_tables(
         stations_table = generator.generate_stations_table(config, timeline)
         work_days_table = generator.generate_work_days_table(config, timeline)
     except Exception as e:
-        logging.error(f"Failed to generate LaTeX tables: {e}")
+        logging.exception(f"Failed to generate LaTeX tables: {e}")
         return []
 
     # Write to files

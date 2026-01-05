@@ -21,13 +21,13 @@ from cruiseplan.calculators.scheduler import (
     ActivityRecord,
     calculate_timeline_statistics,
 )
-from cruiseplan.core.validation import CruiseConfig
 from cruiseplan.output.output_utils import (
     format_activity_type,
     get_activity_depth,
     get_activity_position,
 )
 from cruiseplan.utils.constants import NM_PER_KM, hours_to_days
+from cruiseplan.validation import CruiseConfig
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +222,7 @@ class HTMLGenerator:
         html_content += f"""
         <tr style="font-weight: bold;">
             <td>Total Cruise</td>
-            <td>{stats["moorings"]["count"] + stats["stations"]["count"] + stats["surveys"]["count"] + stats["areas"]["count"]} operations</td>
+            <td>{stats["total_scientific"]} operations</td>
             <td class="number">{total_duration_h:.1f}</td>
             <td class="number">{total_duration_days:.1f}</td>
         </tr>
@@ -561,22 +561,10 @@ class HTMLGenerator:
             distance_nm = activity.get("dist_nm", 0.0)
 
         # For LineOperations and AreaOperations: use entry/exit coordinates
-        elif operation_class in ["LineOperation", "AreaOperation"]:
-            if "entry_lat" in activity and "entry_lon" in activity:
-                entry_position = (
-                    f"{activity['entry_lat']:.4f}, {activity['entry_lon']:.4f}"
-                )
-                exit_position = (
-                    f"{activity['exit_lat']:.4f}, {activity['exit_lon']:.4f}"
-                )
-            else:
-                entry_position = current_pos
-                exit_position = current_pos
-            # All operations use the unified distance field
-            distance_nm = activity.get("dist_nm", 0.0)
-
-        # For NavigationalTransit: use entry/exit coordinates with transit distance
-        elif operation_class == "NavigationalTransit":
+        elif (
+            operation_class in ["LineOperation", "AreaOperation"]
+            or operation_class == "NavigationalTransit"
+        ):
             if "entry_lat" in activity and "entry_lon" in activity:
                 entry_position = (
                     f"{activity['entry_lat']:.4f}, {activity['entry_lon']:.4f}"

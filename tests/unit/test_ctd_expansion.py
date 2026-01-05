@@ -10,7 +10,7 @@ import copy
 
 import pytest
 
-from cruiseplan.core.validation import expand_ctd_sections
+from cruiseplan.validation import expand_ctd_sections
 
 
 class TestCTDSectionExpansion:

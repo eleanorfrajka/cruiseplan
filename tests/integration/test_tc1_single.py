@@ -13,7 +13,7 @@ import pytest
 
 from cruiseplan.calculators.scheduler import generate_timeline
 from cruiseplan.core.cruise import Cruise
-from cruiseplan.core.validation import enrich_configuration
+from cruiseplan.core.validation_old import enrich_configuration
 from cruiseplan.output.csv_generator import generate_csv_schedule
 from cruiseplan.output.html_generator import generate_html_schedule
 from cruiseplan.output.map_generator import generate_map
@@ -173,11 +173,12 @@ class TestTC1SingleIntegration:
 
         # Check coordinate enrichment with precise DMM format
         assert hasattr(
-            enriched_station, "coordinates_ddm"
+            enriched_station, "get_ddm_comment"
         ), "Coordinates should be enriched"
+        ddm_result = enriched_station.get_ddm_comment()
         assert (
-            enriched_station.coordinates_ddm == "45 00.00'N, 045 00.00'W"
-        ), f"Expected DMM '45 00.00'N, 045 00.00'W', got {enriched_station.coordinates_ddm}"
+            ddm_result == "45 00.00'N, 045 00.00'W"
+        ), f"Expected DMM '45 00.00'N, 045 00.00'W', got {ddm_result}"
 
     def test_enrichment_gebco2025_depth(self, yaml_path, temp_dir):
         """Test depth enrichment with GEBCO2025 bathymetry source."""
@@ -244,9 +245,9 @@ class TestTC1SingleIntegration:
 
         # Check coordinate enrichment
         assert hasattr(
-            enriched_station, "coordinates_ddm"
+            enriched_station, "get_ddm_comment"
         ), "Coordinates should be enriched"
-        assert enriched_station.coordinates_ddm == "45 00.00'N, 045 00.00'W"
+        assert enriched_station.get_ddm_comment() == "45 00.00'N, 045 00.00'W"
 
         # Check depth value (already present in fixture, so no enrichment needed)
         assert hasattr(enriched_station, "water_depth"), "Water depth should be present"
@@ -315,7 +316,7 @@ class TestTC1SingleIntegration:
 
         # Validate Halifax port row (departure port)
         halifax_row = lines[1].split(",")
-        assert halifax_row[0] == "Port_Departure"
+        assert halifax_row[0] == "Port"
         assert halifax_row[1] == "Halifax"
         assert float(halifax_row[5]) == 0.0, "Port should have 0 transit distance"
 
@@ -341,7 +342,7 @@ class TestTC1SingleIntegration:
 
         # Validate Cadiz port row (arrival port)
         cadiz_row = lines[5].split(",")
-        assert cadiz_row[0] == "Port_Arrival"
+        assert cadiz_row[0] == "Port"
         assert cadiz_row[1] == "Cadiz"
         assert float(cadiz_row[5]) == 0.0, "Port should have 0 transit distance"
 
