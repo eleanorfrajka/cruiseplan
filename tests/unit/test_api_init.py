@@ -20,7 +20,8 @@ class TestBathymetryAPI:
         mock_download.assert_called_once()
         call_args = mock_download.call_args[1]  # keyword arguments
         assert call_args["source"] == "etopo2022"
-        assert result == Path("/data/etopo2022/bathymetry/etopo2022.nc")
+        assert isinstance(result, cruiseplan.BathymetryResult)
+        assert result.data_file == Path("/data/etopo2022/bathymetry/etopo2022.nc")
 
     @patch("cruiseplan.download_bathymetry")
     @patch("pathlib.Path.mkdir")
@@ -33,7 +34,8 @@ class TestBathymetryAPI:
         mock_download.assert_called_once()
         call_args = mock_download.call_args[1]
         assert call_args["source"] == "gebco2025"
-        assert result == Path("/custom/gebco2025.nc")
+        assert isinstance(result, cruiseplan.BathymetryResult)
+        assert result.data_file == Path("/custom/gebco2025.nc")
         mock_mkdir.assert_called_once()
 
 
@@ -83,35 +85,68 @@ class TestEnrichAPI:
     """Test the cruiseplan.enrich() API function."""
 
     @patch("cruiseplan.core.validation_old.enrich_configuration")
-    @patch("pathlib.Path.mkdir")
-    def test_enrich_success(self, mock_mkdir, mock_enrich):
+    def test_enrich_success(self, mock_enrich):
         """Test successful enrichment."""
-        # enrich_configuration doesn't return anything, just executes
         mock_enrich.return_value = None
 
-        result = cruiseplan.enrich("test.yaml", add_coords=True, add_depths=True)
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+            patch("pathlib.Path.stat") as mock_stat,
+            patch("pathlib.Path.mkdir"),
+            patch("pathlib.Path.touch"),
+            patch("pathlib.Path.unlink"),
+            patch(
+                "cruiseplan.utils.yaml_io.load_yaml",
+                return_value={"cruise_name": "test"},
+            ),
+        ):
+            mock_stat.return_value.st_size = 100  # Non-empty file
+            result = cruiseplan.enrich("test.yaml", add_coords=True, add_depths=True)
 
         mock_enrich.assert_called_once()
         call_args = mock_enrich.call_args[1]
         assert call_args["add_coords"] is True
         assert call_args["add_depths"] is True
-        assert (
-            result == Path("data/test_enriched.yaml").resolve()
-        )  # Default output path
+
+        # Check EnrichResult properties
+        assert isinstance(result, cruiseplan.EnrichResult)
+        assert result.output_file == Path("data/test_enriched.yaml").resolve()
+        assert isinstance(result.files_created, list)
+        assert isinstance(result.summary, dict)
 
     @patch("cruiseplan.core.validation_old.enrich_configuration")
-    @patch("pathlib.Path.mkdir")
-    def test_enrich_custom_output(self, mock_mkdir, mock_enrich):
+    def test_enrich_custom_output(self, mock_enrich):
         """Test enrichment with custom output."""
         mock_enrich.return_value = None
 
-        result = cruiseplan.enrich(
-            config_file="custom.yaml", output_dir="/custom/path", output="custom_name"
-        )
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+            patch("pathlib.Path.stat") as mock_stat,
+            patch("pathlib.Path.mkdir"),
+            patch("pathlib.Path.touch"),
+            patch("pathlib.Path.unlink"),
+            patch(
+                "cruiseplan.utils.yaml_io.load_yaml",
+                return_value={"cruise_name": "test"},
+            ),
+        ):
+            mock_stat.return_value.st_size = 100  # Non-empty file
+            result = cruiseplan.enrich(
+                config_file="custom.yaml",
+                output_dir="/custom/path",
+                output="custom_name",
+            )
 
         mock_enrich.assert_called_once()
-        assert result == Path("/custom/path/custom_name_enriched.yaml").resolve()
-        mock_mkdir.assert_called()
+
+        # Check EnrichResult properties
+        assert isinstance(result, cruiseplan.EnrichResult)
+        assert (
+            result.output_file
+            == Path("/custom/path/custom_name_enriched.yaml").resolve()
+        )
 
 
 class TestSetupOutputPaths:
