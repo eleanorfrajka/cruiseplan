@@ -11,60 +11,15 @@ from typing import Any, Dict, Optional
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
-import numpy as np
+
+# Note: Colormap constants defined after function definitions to avoid forward references
 
 # ============================================================================
-# COLORMAPS (moved from interactive/colormaps.py)
+# COLORMAPS
 # ============================================================================
 
 
 def create_bathymetry_colormap() -> mcolors.LinearSegmentedColormap:
-    """
-    Create a custom bathymetry colormap based on the Flemish Cap CPT.
-
-    This colormap provides a more oceanographically-appropriate color scheme
-    with deeper blues for abyssal depths and yellows for land areas.
-
-    Returns
-    -------
-    matplotlib.colors.LinearSegmentedColormap
-        Custom colormap for bathymetry visualization
-    """
-    # Color definitions from the Flemish Cap CPT
-    # Format: (depth, hex_color)
-    color_points = [
-        (-8000, "#032d44"),  # Abyssal depths (darkest blue)
-        (-7000, "#2A5780"),  # Very deep (darker blue)
-        (-6000, "#2A5780"),
-        (-5000, "#3E8AA4"),  # Deep water (blue)
-        (-4000, "#469AB2"),
-        (-3000, "#4FAEC5"),  # Deep shelf edge (darker blue)
-        (-2000, "#5DB9D2"),  # Moderate depths (medium blue)
-        (-1000, "#77C1D4"),  # Shallow continental shelf (light blue)
-        (-500, "#94CBD1"),
-        (-200, "#addbd1"),  # Very shallow water (very light blue/cyan)
-        (0, "#F7CE55"),  # Land/shallow areas (yellow/tan)
-        (200, "#F7CE55"),  # Land areas
-    ]
-
-    # Normalize depths to 0-1 range for colormap
-    depths = np.array([point[0] for point in color_points])
-    colors = [point[1] for point in color_points]
-
-    # Create normalization from depth range to 0-1
-    # Using a reasonable depth range from -8000 to 200
-    depth_min, depth_max = -8000, 200
-    normalized_positions = (depths - depth_min) / (depth_max - depth_min)
-
-    # Create the colormap
-    cmap = mcolors.LinearSegmentedColormap.from_list(
-        "bathymetry_flemish_cap", list(zip(normalized_positions, colors)), N=256
-    )
-
-    return cmap
-
-
-def create_bathymetry_colormap_v2() -> mcolors.LinearSegmentedColormap:
     """
     Create the Flemish Cap bathymetry colormap matching the CPT specification.
 
@@ -129,17 +84,6 @@ def create_bathymetry_colormap_v2() -> mcolors.LinearSegmentedColormap:
     cmap.set_over("#F7CE55")  # Yellow for land areas
 
     return cmap
-
-
-# Pre-defined colormaps
-BATHYMETRY_COLORMAP = create_bathymetry_colormap_v2()
-BLUES_R_COLORMAP = plt.cm.Blues_r  # Fallback to matplotlib's Blues_r
-
-# Available colormaps dictionary
-AVAILABLE_COLORMAPS = {
-    "bathymetry": BATHYMETRY_COLORMAP,
-    "blues_r": BLUES_R_COLORMAP,
-}
 
 
 def get_colormap(name: str) -> mcolors.Colormap:
@@ -333,29 +277,83 @@ def get_legend_entries() -> dict[str, dict[str, Any]]:
 
 
 # ============================================================================
-# BACKWARDS COMPATIBILITY
+# GREAT CIRCLE ROUTE UTILITIES
 # ============================================================================
 
 
-def load_cpt_colormap(cpt_file: str) -> mcolors.LinearSegmentedColormap:
+def interpolate_great_circle_position(
+    start_lat: float, start_lon: float, end_lat: float, end_lon: float, fraction: float
+) -> tuple[float, float]:
     """
-    Load a colormap from a GMT-style CPT file.
+    Interpolate position along great circle route using spherical geometry.
+
+    This function is useful for generating smooth great circle routes for map visualization,
+    which provides more accurate geographic representation than straight line interpolation.
 
     Parameters
     ----------
-    cpt_file : str
-        Path to the CPT file
+    start_lat : float
+        Starting latitude in decimal degrees.
+    start_lon : float
+        Starting longitude in decimal degrees.
+    end_lat : float
+        Ending latitude in decimal degrees.
+    end_lon : float
+        Ending longitude in decimal degrees.
+    fraction : float
+        Interpolation fraction (0.0 = start, 1.0 = end).
 
     Returns
     -------
-    matplotlib.colors.LinearSegmentedColormap
-        Colormap loaded from the CPT file
-
-    Note
-    ----
-    This is a placeholder for future CPT file support.
-    Currently only supports the hardcoded Flemish Cap colormap.
+    Tuple[float, float]
+        Interpolated (latitude, longitude) in decimal degrees.
     """
-    # TODO: Implement full CPT file parsing
-    # For now, return the custom bathymetry colormap
-    return create_bathymetry_colormap_v2()
+    import math
+
+    # Convert degrees to radians
+    lat1 = math.radians(start_lat)
+    lon1 = math.radians(start_lon)
+    lat2 = math.radians(end_lat)
+    lon2 = math.radians(end_lon)
+
+    # Calculate angular distance
+    d = math.acos(
+        min(
+            1,
+            math.sin(lat1) * math.sin(lat2)
+            + math.cos(lat1) * math.cos(lat2) * math.cos(lon2 - lon1),
+        )
+    )
+
+    # Handle edge case for very short distances
+    if d < 1e-9:
+        return start_lat, start_lon
+
+    # Spherical interpolation
+    A = math.sin((1 - fraction) * d) / math.sin(d)
+    B = math.sin(fraction * d) / math.sin(d)
+
+    x = A * math.cos(lat1) * math.cos(lon1) + B * math.cos(lat2) * math.cos(lon2)
+    y = A * math.cos(lat1) * math.sin(lon1) + B * math.cos(lat2) * math.sin(lon2)
+    z = A * math.sin(lat1) + B * math.sin(lat2)
+
+    # Convert back to lat/lon
+    lat_result = math.atan2(z, math.sqrt(x * x + y * y))
+    lon_result = math.atan2(y, x)
+
+    return math.degrees(lat_result), math.degrees(lon_result)
+
+
+# ============================================================================
+# PRE-DEFINED COLORMAP CONSTANTS
+# ============================================================================
+
+# Pre-defined colormaps (defined here to avoid forward references)
+BATHYMETRY_COLORMAP = create_bathymetry_colormap()
+BLUES_R_COLORMAP = plt.cm.Blues_r  # Fallback to matplotlib's Blues_r
+
+# Available colormaps dictionary
+AVAILABLE_COLORMAPS = {
+    "bathymetry": BATHYMETRY_COLORMAP,
+    "blues_r": BLUES_R_COLORMAP,
+}

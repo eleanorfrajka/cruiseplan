@@ -596,7 +596,7 @@ def plot_bathymetry(
     """
     try:
         from cruiseplan.data.bathymetry import BathymetryManager
-        from cruiseplan.interactive.colormaps import get_colormap
+        from cruiseplan.utils.plot_config import get_colormap
 
         logger.info(
             f"Loading bathymetry for region: {bathy_min_lat:.1f}°-{bathy_max_lat:.1f}°N, {bathy_min_lon:.1f}°-{bathy_max_lon:.1f}°E"
@@ -744,7 +744,10 @@ def plot_cruise_elements(
             "transit", line.get("operation_type"), line.get("action")
         )
 
-        # Plot line
+        # Plot line (currently using straight-line interpolation)
+        # TODO: For enhanced geographic accuracy, consider using great circle routes
+        # by interpolating waypoints with interpolate_great_circle_position() from
+        # cruiseplan.utils.plot_config for more accurate route visualization
         ax.plot(
             line_lons,
             line_lats,
