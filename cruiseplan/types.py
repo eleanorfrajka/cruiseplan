@@ -227,3 +227,18 @@ class BathymetryResult(BaseResult):
     @property
     def _operation_name(self) -> str:
         return f"Bathymetry download ({self.source})"
+
+
+# Import the StationPickerResult at the end to avoid circular imports
+from cruiseplan.api.stations_api import StationPickerResult
+
+__all__ = [
+    "BaseResult",
+    "BathymetryResult",
+    "EnrichResult",
+    "MapResult",
+    "ProcessResult",
+    "ScheduleResult",
+    "StationPickerResult",
+    "ValidationResult",
+]

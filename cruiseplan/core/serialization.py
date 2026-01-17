@@ -1,8 +1,22 @@
 """
 Cruise configuration serialization functions.
 
-This module contains functions for serializing CruiseInstance objects back to
+This module contains high-level business logic for serializing CruiseInstance objects back to
 dictionary and YAML formats with proper field ordering and comment preservation.
+
+**I/O Module Architecture:**
+- **cruiseplan.utils.io**: File system validation, path handling, directory creation
+- **cruiseplan.schema.yaml_io**: YAML file format reading/writing with comment preservation (used by this module)
+- **cruiseplan.core.serialization** (this module): High-level CruiseInstance object serialization to YAML
+- **cruiseplan.output.*_generator**: Specialized output format generators (HTML, LaTeX, CSV, etc.)
+
+**Dependencies**: Uses `cruiseplan.schema.yaml_io` for YAML operations and `cruiseplan.utils.io` for file handling.
+
+**See Also**:
+- For file system operations: `cruiseplan.utils.io`
+- For YAML file operations: `cruiseplan.schema.yaml_io`
+- For generating specific output formats: `cruiseplan.output.html_generator`, `cruiseplan.output.latex_generator`, etc.
+- For the enrichment process that uses these functions: `cruiseplan.core.enrichment`
 """
 
 import logging
@@ -92,36 +106,40 @@ def serialize_definition(
         ClusterDefinition,
         LegDefinition,
     ],
-    allowed_fields: list[str],
+    allowed_fields: Union[list[str], set[str]],
 ) -> dict[str, Any]:
     """
     Convert a Pydantic definition object to a dictionary with field filtering.
 
     This function extracts only the allowed fields from the object, filtering out
-    internal fields and maintaining canonical field ordering.
+    internal fields and maintaining canonical field ordering from YAML_FIELD_ORDER.
 
     Parameters
     ----------
     obj : Union[PointDefinition, LineDefinition, AreaDefinition, ClusterDefinition, LegDefinition]
         The Pydantic object to serialize
-    allowed_fields : list[str]
-        List of field names that should be included in the output
+    allowed_fields : Union[list[str], set[str]]
+        Collection of field names that should be included in the output.
+        Field ordering is determined by YAML_FIELD_ORDER, not by this parameter.
 
     Returns
     -------
     dict[str, Any]
-        Dictionary containing only the allowed fields with their values
+        Dictionary containing only the allowed fields with their values in canonical order
     """
+    from cruiseplan.schema.fields import YAML_FIELD_ORDER
+
     output = {}
 
-    # Serialize only the allowed fields in canonical order
-    for field_name in allowed_fields:
-        if hasattr(obj, field_name):
-            value = getattr(obj, field_name)
+    # Serialize fields in canonical order using YAML_FIELD_ORDER
+    # Only include fields that are in allowed_fields
+    for _, pydantic_field in YAML_FIELD_ORDER:
+        if pydantic_field in allowed_fields and hasattr(obj, pydantic_field):
+            value = getattr(obj, pydantic_field)
             if value is not None:  # Skip None values to keep YAML clean
                 # Convert enum values to strings for YAML serialization
                 if isinstance(value, Enum):
-                    output[field_name] = value.value
+                    output[pydantic_field] = value.value
                 # Convert GeoPoint objects to coordinate dictionaries
                 elif hasattr(value, "__iter__") and not isinstance(value, str):
                     # Handle lists of GeoPoint objects (e.g., route, corners)
@@ -137,9 +155,9 @@ def serialize_definition(
                             )
                         else:
                             converted_list.append(item)
-                    output[field_name] = converted_list
+                    output[pydantic_field] = converted_list
                 else:
-                    output[field_name] = value
+                    output[pydantic_field] = value
 
     return output
 
@@ -236,6 +254,24 @@ def serialize_cluster_definition(cluster: ClusterDefinition) -> dict[str, Any]:
     return output
 
 
+def _serialize_port_object(port_obj) -> dict[str, Any]:
+    """Helper to serialize port objects for leg definitions."""
+    if hasattr(port_obj, "name") and hasattr(port_obj, "latitude"):
+        # This is a full PortDefinition object, serialize it
+        return serialize_definition(port_obj, POINT_ALLOWED_FIELDS)
+    return port_obj
+
+
+def _convert_activity_to_name(activity) -> str:
+    """Helper to convert activity object to string name reference."""
+    if hasattr(activity, "name"):
+        # This is a PointDefinition object, use its name
+        return activity.name
+    else:
+        # This is already a string reference
+        return activity
+
+
 def serialize_leg_definition(leg: LegDefinition) -> dict[str, Any]:
     """
     Serialize a LegDefinition to dictionary format.
@@ -254,20 +290,10 @@ def serialize_leg_definition(leg: LegDefinition) -> dict[str, Any]:
 
     # Handle special serialization for nested port objects
     if hasattr(leg, DEPARTURE_PORT_FIELD) and leg.departure_port:
-        port_obj = leg.departure_port
-        if hasattr(port_obj, "name") and hasattr(port_obj, "latitude"):
-            # This is a full PortDefinition object, serialize it
-            output[DEPARTURE_PORT_FIELD] = serialize_definition(
-                port_obj, POINT_ALLOWED_FIELDS
-            )
+        output[DEPARTURE_PORT_FIELD] = _serialize_port_object(leg.departure_port)
 
     if hasattr(leg, ARRIVAL_PORT_FIELD) and leg.arrival_port:
-        port_obj = leg.arrival_port
-        if hasattr(port_obj, "name") and hasattr(port_obj, "latitude"):
-            # This is a full PortDefinition object, serialize it
-            output[ARRIVAL_PORT_FIELD] = serialize_definition(
-                port_obj, POINT_ALLOWED_FIELDS
-            )
+        output[ARRIVAL_PORT_FIELD] = _serialize_port_object(leg.arrival_port)
 
     # Handle clusters within legs
     if hasattr(leg, "clusters") and leg.clusters:
@@ -277,33 +303,17 @@ def serialize_leg_definition(leg: LegDefinition) -> dict[str, Any]:
 
     # Handle activities - convert PointDefinition objects back to string references
     if hasattr(leg, ACTIVITIES_FIELD) and leg.activities:
-        activities_list = []
-        for activity in leg.activities:
-            if hasattr(activity, "name"):
-                # This is a PointDefinition object, use its name
-                activities_list.append(activity.name)
-            else:
-                # This is already a string reference
-                activities_list.append(activity)
-        output[ACTIVITIES_FIELD] = activities_list
+        output[ACTIVITIES_FIELD] = [
+            _convert_activity_to_name(activity) for activity in leg.activities
+        ]
 
     # Handle first_activity - convert PointDefinition object back to string reference
     if hasattr(leg, FIRST_ACTIVITY_FIELD) and leg.first_activity:
-        if hasattr(leg.first_activity, "name"):
-            # This is a PointDefinition object, use its name
-            output[FIRST_ACTIVITY_FIELD] = leg.first_activity.name
-        else:
-            # This is already a string reference
-            output[FIRST_ACTIVITY_FIELD] = leg.first_activity
+        output[FIRST_ACTIVITY_FIELD] = _convert_activity_to_name(leg.first_activity)
 
     # Handle last_activity - convert PointDefinition object back to string reference
     if hasattr(leg, LAST_ACTIVITY_FIELD) and leg.last_activity:
-        if hasattr(leg.last_activity, "name"):
-            # This is a PointDefinition object, use its name
-            output[LAST_ACTIVITY_FIELD] = leg.last_activity.name
-        else:
-            # This is already a string reference
-            output[LAST_ACTIVITY_FIELD] = leg.last_activity
+        output[LAST_ACTIVITY_FIELD] = _convert_activity_to_name(leg.last_activity)
 
     return output
 
@@ -384,7 +394,8 @@ def to_commented_dict(cruise_instance: "CruiseInstance") -> dict[str, Any]:
 
     if cruise_instance.line_registry:
         output[LINES_FIELD] = [
-            serialize_line_definition(l) for l in cruise_instance.line_registry.values()
+            serialize_line_definition(line)
+            for line in cruise_instance.line_registry.values()
         ]
 
     if cruise_instance.area_registry:

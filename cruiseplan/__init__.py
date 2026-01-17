@@ -24,6 +24,9 @@ that mirror the CLI commands:
     # Validate configuration (mirrors: cruiseplan validate)
     is_valid = cruiseplan.validate(config_file="cruise.yaml")
 
+    # Interactive station placement (mirrors: cruiseplan stations)
+    result = cruiseplan.stations(lat_bounds=[70, 80], lon_bounds=[-10, 10], pangaea_file="campaign.pkl")
+
     # Generate schedule (mirrors: cruiseplan schedule)
     timeline, files = cruiseplan.schedule(config_file="cruise.yaml", format="html")
 
@@ -35,16 +38,7 @@ For more advanced usage, import the underlying classes directly:
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Optional, Union
 
-from cruiseplan.calculators import CruiseSchedule
-from cruiseplan.data.bathymetry import download_bathymetry
-
-logger = logging.getLogger(__name__)
-
-
-# Import exception classes and result types from separate modules
 from cruiseplan.api import (
     bathymetry,
     enrich,
@@ -52,8 +46,11 @@ from cruiseplan.api import (
     pangaea,
     process,
     schedule,
+    stations,
     validate,
 )
+from cruiseplan.calculators import CruiseSchedule
+from cruiseplan.data.bathymetry import download_bathymetry
 from cruiseplan.exceptions import BathymetryError, FileError, ValidationError
 from cruiseplan.types import (
     BathymetryResult,
@@ -62,8 +59,11 @@ from cruiseplan.types import (
     PangaeaResult,
     ProcessResult,
     ScheduleResult,
+    StationPickerResult,
     ValidationResult,
 )
+
+logger = logging.getLogger(__name__)
 
 # Export the core classes for advanced users
 __all__ = [
@@ -73,6 +73,7 @@ __all__ = [
     "pangaea",
     "process",
     "schedule",
+    "stations",
     "validate",
     # Exception classes
     "ValidationError",
@@ -86,6 +87,9 @@ __all__ = [
     "ProcessResult",
     "MapResult",
     "BathymetryResult",
+    "StationPickerResult",
     # Legacy compatibility
     "CruiseSchedule",
+    # Advanced usage functions
+    "download_bathymetry",
 ]
