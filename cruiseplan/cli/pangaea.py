@@ -59,10 +59,8 @@ def main(args: argparse.Namespace) -> None:
         # Determine workflow mode (CLI-specific logic)
         mode = determine_workflow_mode(args)
 
-        # Handle DOI file mode (not yet implemented in API - would need enhancement)
-        if mode == "doi_file":
-            print("❌ DOI file mode not yet implemented in thin CLI", file=sys.stderr)
-            sys.exit(1)
+        # Note: DOI file mode is now handled automatically by the API
+        # based on query_or_file parameter detection
 
         # Validate lat/lon bounds if provided (CLI-specific validation)
         lat_bounds = getattr(args, "lat", None)
@@ -77,12 +75,12 @@ def main(args: argparse.Namespace) -> None:
 
         # Call the API function with CLI arguments
         result = cruiseplan.pangaea(
-            query_terms=args.query,
+            query_terms=args.query_or_file,
             output_dir=str(getattr(args, "output_dir", "data")),
             output=getattr(args, "output", None),
             lat_bounds=lat_bounds,
             lon_bounds=lon_bounds,
-            max_results=getattr(args, "max_results", 100),
+            limit=getattr(args, "limit", 10),
             rate_limit=getattr(args, "rate_limit", 1.0),
             merge_campaigns=getattr(args, "merge_campaigns", True),
             verbose=getattr(args, "verbose", False),
@@ -103,7 +101,7 @@ def main(args: argparse.Namespace) -> None:
             # Show next steps
             print("🚀 Next steps:")
             stations_file = next(
-                (f for f in result.files_created if str(f).endswith("_stations.pkl")),
+                (f for f in result.files_created if str(f).endswith(".pkl")),
                 None,
             )
             if stations_file:
@@ -112,6 +110,9 @@ def main(args: argparse.Namespace) -> None:
         else:
             print("❌ PANGAEA processing failed")
             sys.exit(1)
+
+        # Successful completion
+        sys.exit(0)
 
     except cruiseplan.ValidationError as e:
         print(f"❌ Configuration validation error: {e}", file=sys.stderr)

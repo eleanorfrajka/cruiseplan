@@ -9,16 +9,16 @@ from pathlib import Path
 import pytest
 
 from cruiseplan.api.process_cruise import enrich_configuration
-from cruiseplan.calculators.scheduler import generate_timeline
-from cruiseplan.core.cruise import CruiseInstance
-from cruiseplan.schema.yaml_io import load_yaml
+from cruiseplan.config.yaml_io import load_yaml
+from cruiseplan.runtime.cruise import CruiseInstance
+from cruiseplan.timeline.scheduler import generate_timeline
 
 
 class TestSchedulerDebug:
     """Debug tests that provide detailed timeline analysis."""
 
     @pytest.mark.parametrize("fixture_name", ["tc4_mixed_ops.yaml"])
-    def test_scheduler_debug_output(self, fixture_name, capsys):
+    def test_scheduler_debug_output(self, fixture_name, capsys):  # noqa: C901, PLR0915
         """Generate detailed debug output for scheduler timeline generation."""
         yaml_path = f"tests/fixtures/{fixture_name}"
 

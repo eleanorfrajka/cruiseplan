@@ -13,18 +13,10 @@ from typing import Any, Optional, Union
 
 from pydantic import ValidationError
 
-from cruiseplan.core.validation import (
-    check_complete_duplicates,
-    check_cruise_metadata,
-    check_duplicate_names,
-    check_unexpanded_ctd_sections,
-    format_validation_warnings,
-    validate_depth_accuracy,
-)
-from cruiseplan.data.bathymetry import BathymetryManager
-from cruiseplan.exceptions import BathymetryError, FileError
-from cruiseplan.exceptions import ValidationError as CruisePlanValidationError
-from cruiseplan.schema.fields import (
+from cruiseplan.api.types import EnrichResult, ProcessResult, ValidationResult
+from cruiseplan.config.exceptions import BathymetryError, FileError
+from cruiseplan.config.exceptions import ValidationError as CruisePlanValidationError
+from cruiseplan.config.fields import (
     ACTION_FIELD,
     ARRIVAL_PORT_FIELD,
     DEPARTURE_PORT_FIELD,
@@ -32,15 +24,23 @@ from cruiseplan.schema.fields import (
     OP_TYPE_FIELD,
     START_DATE_FIELD,
 )
-from cruiseplan.schema.values import (
+from cruiseplan.config.values import (
     DEFAULT_ARRIVAL_PORT,
     DEFAULT_DEPARTURE_PORT,
     DEFAULT_LEG_NAME,
     DEFAULT_START_DATE,
     DEFAULT_UPDATE_PREFIX,
 )
-from cruiseplan.schema.yaml_io import load_yaml, load_yaml_safe, save_yaml
-from cruiseplan.types import EnrichResult, ProcessResult, ValidationResult
+from cruiseplan.config.yaml_io import load_yaml, load_yaml_safe, save_yaml
+from cruiseplan.data.bathymetry import BathymetryManager
+from cruiseplan.runtime.validation import (
+    check_complete_duplicates,
+    check_cruise_metadata,
+    check_duplicate_names,
+    check_unexpanded_ctd_sections,
+    format_validation_warnings,
+    validate_depth_accuracy,
+)
 from cruiseplan.utils.logging import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ def _save_config(
     output_path: Optional[Path],
 ) -> None:
     """
-    Save configuration to file.
+    Save configuration to file with section comments.
 
     Parameters
     ----------
@@ -140,7 +140,31 @@ def _save_config(
         Path for output file (if None, no save).
     """
     if output_path:
-        save_yaml(config_dict, output_path, backup=False)
+        # Add section comments to the config before saving
+        from ruamel.yaml.comments import CommentedMap
+
+        commented_data = CommentedMap(config_dict)
+
+        # Add cruise metadata comment before first field
+        if any(
+            key in config_dict for key in ["cruise_name", "start_date", "description"]
+        ):
+            commented_data.yaml_set_comment_before_after_key(
+                list(config_dict.keys())[0], before="Cruise metadata"
+            )
+
+        # Add spacing and comments for main sections
+        for key in config_dict:
+            if key == "points" or key == "lines" or key == "areas":
+                commented_data.yaml_set_comment_before_after_key(
+                    key, before="\nGlobal catalog - define your operations"
+                )
+            elif key == "legs":
+                commented_data.yaml_set_comment_before_after_key(
+                    key, before="\nSchedule organization"
+                )
+
+        save_yaml(commented_data, output_path, backup=False)
 
 
 def _process_warnings(captured_warnings: list[str]) -> None:
@@ -214,7 +238,7 @@ def _enrich_configuration(
     processed_config = _minimal_preprocess_config(config_dict)
 
     # 3. Create Cruise object
-    from cruiseplan.core.cruise import CruiseInstance
+    from cruiseplan.runtime.cruise import CruiseInstance
 
     with _validation_warning_capture() as captured_warnings:
         cruise = CruiseInstance.from_dict(processed_config)
@@ -264,7 +288,7 @@ def _enrich_configuration(
     return final_summary
 
 
-def enrich(
+def enrich(  # noqa: C901
     config_file: Union[str, Path],
     output_dir: str = "data",
     output: Optional[str] = None,
@@ -466,7 +490,6 @@ def _validate_configuration(
     tolerance: float = 10.0,
     bathymetry_source: str = "etopo2022",
     bathymetry_dir: str = "data",
-    strict: bool = False,
 ) -> tuple[bool, list[str], list[str]]:
     """
     Comprehensive validation of YAML configuration file.
@@ -484,8 +507,6 @@ def _validate_configuration(
         Depth difference tolerance percentage (default: 10.0).
     bathymetry_source : str, optional
         Bathymetry dataset to use (default: "etopo2022").
-    strict : bool, optional
-        Whether to use strict validation mode (default: False).
 
     Returns
     -------
@@ -510,7 +531,7 @@ def _validate_configuration(
 
     try:
         # Import here to avoid circular dependencies
-        from cruiseplan.core.cruise import CruiseInstance
+        from cruiseplan.runtime.cruise import CruiseInstance
 
         # Load and validate configuration
         cruise = CruiseInstance(config_path)
@@ -640,7 +661,7 @@ def _check_unexpanded_ctd_sections_raw(config_dict: dict[str, Any]) -> list[str]
     return warnings
 
 
-def _check_cruise_metadata_raw(raw_config: dict) -> list[str]:
+def _check_cruise_metadata_raw(raw_config: dict) -> list[str]:  # noqa: C901
     """
     Check cruise metadata for placeholder values and default coordinates from raw YAML.
 
@@ -794,7 +815,6 @@ def validate(
     bathy_dir: str = "data/bathymetry",
     check_depths: bool = True,
     tolerance: float = 10.0,
-    strict: bool = False,
     warnings_only: bool = False,
     verbose: bool = False,
 ) -> ValidationResult:
@@ -813,8 +833,6 @@ def validate(
         Compare existing depths with bathymetry data (default: True)
     tolerance : float
         Depth difference tolerance in percent (default: 10.0)
-    strict : bool
-        Enable strict validation mode (default: False)
     warnings_only : bool
         Show warnings without failing - warnings don't affect return value (default: False)
     verbose : bool
@@ -830,8 +848,8 @@ def validate(
     >>> import cruiseplan
     >>> # Validate cruise configuration with depth checking
     >>> is_valid = cruiseplan.validate(config_file="cruise.yaml", check_depths=True)
-    >>> # Strict validation with custom tolerance
-    >>> is_valid = cruiseplan.validate(config_file="cruise.yaml", strict=True, tolerance=5.0)
+    >>> # Custom tolerance validation
+    >>> is_valid = cruiseplan.validate(config_file="cruise.yaml", tolerance=5.0)
     >>> if is_valid:
     ...     print("✅ Configuration is valid")
     """
@@ -853,7 +871,6 @@ def validate(
             tolerance=tolerance,
             bathymetry_source=bathy_source,
             bathymetry_dir=bathy_dir,
-            strict=strict,
         )
 
         # Create summary information
@@ -862,7 +879,6 @@ def validate(
             "error_count": len(errors),
             "warning_count": len(warnings),
             "depth_checking_enabled": check_depths,
-            "strict_mode": strict,
         }
 
         # Try to add cruise name to summary if available

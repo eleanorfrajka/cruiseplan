@@ -10,8 +10,8 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from cruiseplan.exceptions import ValidationError
-from cruiseplan.types import BathymetryResult, PangaeaResult
+from cruiseplan.api.types import BathymetryResult, PangaeaResult
+from cruiseplan.config.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def pangaea(
     output: Optional[str] = None,
     lat_bounds: Optional[list[float]] = None,
     lon_bounds: Optional[list[float]] = None,
-    max_results: int = 100,
+    limit: int = 10,
     rate_limit: float = 1.0,
     merge_campaigns: bool = True,
     verbose: bool = False,
@@ -106,8 +106,8 @@ def pangaea(
         Latitude bounds [min_lat, max_lat]
     lon_bounds : List[float], optional
         Longitude bounds [min_lon, max_lon]
-    max_results : int
-        Maximum number of results to process (default: 100)
+    limit : int
+        Maximum number of results to process (default: 10)
     rate_limit : float
         API request rate limit in requests per second (default: 1.0)
     merge_campaigns : bool
@@ -135,14 +135,14 @@ def pangaea(
     >>> for campaign in result.stations_data:
     ...     print(f"Campaign: {campaign['Campaign']}, Stations: {len(campaign['Stations'])}")
     """
-    from cruiseplan.data.pangaea import (
-        PangaeaManager,
-        save_campaign_data,
-    )
-    from cruiseplan.init_utils import (
+    from cruiseplan.api.init_utils import (
         _handle_error_with_logging,
         _setup_verbose_logging,
         _validate_lat_lon_bounds,
+    )
+    from cruiseplan.data.pangaea import (
+        PangaeaManager,
+        save_campaign_data,
     )
 
     _setup_verbose_logging(verbose)
@@ -167,72 +167,125 @@ def pangaea(
 
         # Define output files
         dois_file = output_dir_path / f"{base_name}_dois.txt"
-        stations_file = output_dir_path / f"{base_name}_stations.pkl"
+        stations_file = output_dir_path / f"{base_name}.pkl"
         generated_files = []
-
-        # Search PANGAEA database using PangaeaManager with separate search/fetch
-        logger.info(f"🔍 Searching PANGAEA for: '{query_terms}'")
-        if bbox:
-            logger.info(f"📍 Geographic bounds: lat {lat_bounds}, lon {lon_bounds}")
 
         manager = PangaeaManager()
 
-        # First, do a search to get DOIs only (modify search to not auto-fetch)
-        try:
-            from pangaeapy.panquery import PanQuery
+        # Detect query_terms type and get DOI list accordingly
+        query_path = Path(query_terms)
+        if query_terms.endswith(".txt") and query_path.exists():
+            # DOI file mode: read DOIs from existing file
+            logger.info(f"📁 Processing DOI file: '{query_terms}'")
+            from cruiseplan.data.pangaea import read_doi_list
 
-            pq = PanQuery(query_terms, bbox=bbox, limit=max_results)
-            if pq.error:
-                logger.error(f"PANGAEA Query Error: {pq.error}")
-                return None, None
+            clean_dois = read_doi_list(query_terms)
+            logger.info(f"✅ Loaded {len(clean_dois)} DOIs from file")
 
-            raw_dois = pq.get_dois()
-            clean_dois = [manager._clean_doi(doi) for doi in raw_dois]
+            # Copy the input file as dois_file for consistency
+            import shutil
 
-            logger.info(
-                f"Search found {pq.totalcount} total matches. Retrieving first {len(clean_dois)}..."
-            )
-
-            if not clean_dois:
-                logger.warning("❌ No DOIs found. Try broadening your search criteria.")
-                raise RuntimeError("No DOIs found for the given search criteria")
-
-            logger.info(f"✅ Found {len(clean_dois)} datasets")
-
-            # Save DOI list (intermediate file)
-            with open(dois_file, "w") as f:
-                for doi in clean_dois:
-                    f.write(f"{doi}\n")
+            shutil.copy(query_terms, dois_file)
             generated_files.append(dois_file)
-
             logger.info(f"📂 DOI file: {dois_file}")
-            logger.info(f"📂 Stations file: {stations_file}")
 
-            # Now fetch detailed PANGAEA data with proper rate limiting
-            logger.info(f"⚙️ Processing {len(clean_dois)} DOIs...")
-            logger.info(f"🕐 Rate limit: {rate_limit} requests/second")
+        elif query_terms.startswith("10.") and "/" in query_terms:
+            # Single DOI mode: validate and process single DOI
+            logger.info(f"📄 Processing single DOI: '{query_terms}'")
 
-            detailed_datasets = manager.fetch_datasets(
-                clean_dois, rate_limit=rate_limit, merge_campaigns=merge_campaigns
-            )
+            # Validate DOI format and clean it
+            clean_doi = manager._clean_doi(query_terms)
+            clean_dois = [clean_doi]
+            logger.info(f"✅ Validated DOI: {clean_doi}")
 
-            if not detailed_datasets:
-                logger.warning(
-                    "⚠️ No datasets retrieved. Check DOI list and network connection."
+            # Save single DOI to file for consistency with header
+            with open(dois_file, "w") as f:
+                f.write("# Single DOI Processing\n")
+                f.write(f"# DOI: {query_terms}\n")
+                f.write("#\n")
+                f.write(f"{clean_doi}\n")
+            generated_files.append(dois_file)
+            logger.info(f"📂 DOI file: {dois_file}")
+
+        else:
+            # Search mode: search PANGAEA database
+            logger.info(f"🔍 Searching PANGAEA for: '{query_terms}'")
+            if bbox:
+                logger.info(f"📍 Geographic bounds: lat {lat_bounds}, lon {lon_bounds}")
+
+            # Search mode: perform PANGAEA search
+            try:
+                from pangaeapy.panquery import PanQuery
+
+                pq = PanQuery(query_terms, bbox=bbox, limit=limit)
+                if pq.error:
+                    logger.error(f"PANGAEA Query Error: {pq.error}")
+                    return None, None
+
+                raw_dois = pq.get_dois()
+                clean_dois = [manager._clean_doi(doi) for doi in raw_dois]
+
+                logger.info(
+                    f"Search found {pq.totalcount} total matches. Retrieving first {len(clean_dois)}..."
                 )
-                raise RuntimeError("No datasets could be retrieved from PANGAEA")
 
-            # Save results using data function
-            save_campaign_data(detailed_datasets, stations_file)
-            generated_files.append(stations_file)
+                if not clean_dois:
+                    logger.warning(
+                        "❌ No DOIs found. Try broadening your search criteria."
+                    )
+                    raise RuntimeError("No DOIs found for the given search criteria")
 
-        except ImportError:
-            logger.error(
-                "❌ pangaeapy not available. Please install with: pip install pangaeapy"
+                logger.info(f"✅ Found {len(clean_dois)} datasets")
+
+                # Save DOI list (intermediate file) with query header
+                with open(dois_file, "w") as f:
+                    # Add header comment with search information
+                    f.write("# PANGAEA Search Results\n")
+                    f.write(f"# Query: {query_terms}\n")
+                    if bbox and lat_bounds and lon_bounds:
+                        f.write(
+                            f"# Geographic bounds: lat {lat_bounds}, lon {lon_bounds}\n"
+                        )
+                    f.write(f"# Results limit: {limit}\n")
+                    f.write(
+                        f"# Generated: {pq.totalcount} total matches, showing first {len(clean_dois)}\n"
+                    )
+                    f.write("#\n")
+                    # Write DOI list
+                    for doi in clean_dois:
+                        f.write(f"{doi}\n")
+                generated_files.append(dois_file)
+
+                logger.info(f"📂 DOI file: {dois_file}")
+
+            except ImportError:
+                logger.exception(
+                    "❌ pangaeapy not available. Please install with: pip install pangaeapy"
+                )
+                raise RuntimeError(
+                    "pangaeapy package not available - please install with: pip install pangaeapy"
+                )
+
+        # Common processing for all modes - fetch detailed data
+        logger.info(f"📂 Stations file: {stations_file}")
+
+        # Now fetch detailed PANGAEA data with proper rate limiting
+        logger.info(f"⚙️ Processing {len(clean_dois)} DOIs...")
+        logger.info(f"🕐 Rate limit: {rate_limit} requests/second")
+
+        detailed_datasets = manager.fetch_datasets(
+            clean_dois, rate_limit=rate_limit, merge_campaigns=merge_campaigns
+        )
+
+        if not detailed_datasets:
+            logger.warning(
+                "⚠️ No datasets retrieved. Check DOI list and network connection."
             )
-            raise RuntimeError(
-                "pangaeapy package not available - please install with: pip install pangaeapy"
-            )
+            raise RuntimeError("No datasets could be retrieved from PANGAEA")
+
+        # Save results using data function
+        save_campaign_data(detailed_datasets, stations_file)
+        generated_files.append(stations_file)
 
         logger.info("✅ PANGAEA processing completed successfully!")
         logger.info(f"🚀 Next step: cruiseplan stations -p {stations_file}")
@@ -246,7 +299,7 @@ def pangaea(
                 "files_generated": len(generated_files),
                 "lat_bounds": lat_bounds,
                 "lon_bounds": lon_bounds,
-                "max_results": max_results,
+                "limit": limit,
             },
         )
 

@@ -28,7 +28,6 @@ def main(args: argparse.Namespace) -> None:
             bathy_dir=getattr(args, "bathy_dir", "data/bathymetry"),
             check_depths=getattr(args, "check_depths", True),
             tolerance=getattr(args, "tolerance", 10.0),
-            strict=getattr(args, "strict", False),
             warnings_only=getattr(args, "warnings_only", False),
             verbose=getattr(args, "verbose", False),
         )
@@ -46,7 +45,7 @@ def main(args: argparse.Namespace) -> None:
 
         if result.warnings:
             if getattr(args, "warnings_only", False):
-                print("ℹ️ Validation Warnings (informational only):")
+                print("i Validation Warnings (informational only):")
                 for warning in result.warnings:
                     print(f"  • {warning}")
             else:
@@ -58,7 +57,7 @@ def main(args: argparse.Namespace) -> None:
         if result.success:
             print(f"✅ Validation passed ({len(result.warnings)} warnings)")
             if result.warnings and getattr(args, "warnings_only", False):
-                print("ℹ️ Treating warnings as informational only")
+                print("i Treating warnings as informational only")
             sys.exit(0)
         else:
             print(
@@ -101,7 +100,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--check-depths", action="store_true", help="Check depth accuracy"
     )
-    parser.add_argument("--strict", action="store_true", help="Strict validation mode")
     parser.add_argument(
         "--warnings-only", action="store_true", help="Show warnings without failing"
     )
