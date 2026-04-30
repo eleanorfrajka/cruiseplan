@@ -211,6 +211,10 @@ def generate_png_format(
     bathy_dir: str,
     bathy_stride: int,
     figsize: tuple,
+    bathy_contours: Optional[list] = None,
+    lat_bounds: Optional[list] = None,
+    lon_bounds: Optional[list] = None,
+    no_ports: bool = False,
     suffix: str = "map",
 ) -> Optional[Path]:
     """Generate PNG map output."""
@@ -225,7 +229,11 @@ def generate_png_format(
         bathy_source=bathy_source,
         bathy_dir=bathy_dir,
         bathy_stride=bathy_stride,
+        bathy_contours=bathy_contours,
+        lat_bounds=lat_bounds,
+        lon_bounds=lon_bounds,
         figsize=figsize,
+        no_ports=no_ports,
         config=cruise,
     )
 
