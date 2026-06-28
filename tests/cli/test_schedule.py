@@ -68,6 +68,7 @@ class TestScheduleThinCLI:
                 no_ports=False,
                 include_eez=True,
                 verbose=False,
+                max_depth=None,
             )
 
     def test_schedule_with_custom_options(self):
@@ -115,6 +116,7 @@ class TestScheduleThinCLI:
                 no_ports=False,
                 include_eez=True,
                 verbose=True,
+                max_depth=None,
             )
 
     def test_schedule_derive_netcdf_compatibility_warning(self):
@@ -285,6 +287,7 @@ class TestScheduleThinCLI:
                 no_ports=False,  # default
                 include_eez=True,  # default
                 verbose=False,  # default
+                max_depth=None,  # default
             )
 
     def test_schedule_empty_timeline_handling(self):

@@ -238,6 +238,13 @@ Examples:
         metavar="DEPTH",
         help="Custom bathymetry contour levels in meters (space-separated positive values), e.g., '500 400 300'",
     )
+    schedule_parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=None,
+        metavar="METRES",
+        help="Maximum water depth (m) for the bathymetry colour scale. Clips the deep end so shallow-water structure uses the full colour range. Example: --max-depth 1000",
+    )
 
     # Map bounds
     schedule_parser.add_argument(
@@ -268,11 +275,6 @@ Examples:
         "--no-ports",
         action="store_true",
         help="Exclude ports from PNG schedule maps",
-    )
-    schedule_parser.add_argument(
-        "--no-eez",
-        action="store_true",
-        help="Exclude EEZ boundaries from interactive maps (visualization only - not legal boundaries)",
     )
 
     # --- 3. Stations Subcommand ---
@@ -506,11 +508,6 @@ Examples:
         action="store_true",
         help="Suppress plotting of departure and arrival ports in both PNG and KML outputs",
     )
-    map_parser.add_argument(
-        "--no-eez",
-        action="store_true",
-        help="Exclude EEZ boundaries from interactive maps (visualization only - not legal boundaries)",
-    )
 
     # Output control
     map_parser.add_argument(
@@ -595,6 +592,13 @@ Examples:
         nargs="+",
         metavar="DEPTH",
         help="Custom bathymetry contour levels in meters (space-separated positive values), e.g., '500 400 300'",
+    )
+    map_parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=None,
+        metavar="METRES",
+        help="Maximum water depth (m) for the bathymetry colour scale. Clips the deep end so shallow-water structure uses the full colour range. Example: --max-depth 1000",
     )
 
     # General options
@@ -748,7 +752,13 @@ Examples:
         metavar="DEPTH",
         help="Custom bathymetry contour levels in meters (space-separated positive values), e.g., '500 400 300'. Replaces default contours.",
     )
-
+    process_parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=None,
+        metavar="METRES",
+        help="Maximum water depth (m) for the bathymetry colour scale. Clips the deep end so shallow-water structure uses the full colour range. Example: --max-depth 1000",
+    )
     # Map bounds
     process_parser.add_argument(
         "--lat",
