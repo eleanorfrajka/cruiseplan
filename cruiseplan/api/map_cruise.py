@@ -89,6 +89,9 @@ def map(
     show_plot: bool = False,
     no_ports: bool = False,
     include_eez: bool = True,
+    no_title: bool = False,
+    no_labels: bool = False,
+    no_legend: bool = False,
     verbose: bool = False,
     max_depth: Optional[int] = None,
 ) -> MapResult:
@@ -118,8 +121,14 @@ def map(
     no_ports : bool
         Suppress plotting of departure and arrival ports (default: False)
     include_eez : bool
-        Include EEZ (Exclusive Economic Zone) boundaries on interactive maps (default: True).
-        Note: Boundaries are for visualization only and may not reflect official agreements.
+        Include EEZ boundaries on interactive maps (default: True).
+        Boundaries are for visualization only and may not reflect official agreements.
+    no_title : bool
+        Omit the map title from PNG output (default: False)
+    no_labels : bool
+        Omit station name annotations from PNG output (default: False)
+    no_legend : bool
+        Omit the legend from PNG output (default: False)
     verbose : bool
         Enable verbose logging (default: False)
 
@@ -175,7 +184,10 @@ def map(
                 lon_bounds=lon_bounds,
                 figsize=tuple(figsize),
                 show_plot=show_plot,
-                include_ports=not no_ports,  # Convert no_ports to include_ports
+                include_ports=not no_ports,
+                no_title=no_title,
+                no_labels=no_labels,
+                no_legend=no_legend,
                 max_depth=max_depth,
             )
             if result:

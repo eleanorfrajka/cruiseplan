@@ -184,6 +184,11 @@ class LegDefinition(BaseModel):
     buffer_time: Optional[float] = Field(
         None, description="Contingency time for weather delays (minutes)"
     )
+    delay_start: Optional[float] = Field(
+        None,
+        ge=0,
+        description="Delay before the leg departs (minutes), e.g. for port clearance",
+    )
 
     # Activity organization
     activities: Optional[list[Union[str, dict[str, Any]]]] = Field(

@@ -7,6 +7,10 @@ on:
       - '**.ipynb'
       - '**.rst'
       - '**.md'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'setup.cfg'
+      - '.github/workflows/**'
 
 jobs:
   build-docs:

@@ -1130,6 +1130,9 @@ def process(
     lon_bounds: Optional[list] = None,
     figsize: Optional[list] = None,
     no_port_map: bool = False,
+    no_title: bool = False,
+    no_labels: bool = False,
+    no_legend: bool = False,
     verbose: bool = False,
     max_depth: Optional[int] = None,
 ) -> ProcessResult:
@@ -1172,6 +1175,12 @@ def process(
         Figure size for maps [width, height] (default: auto)
     no_port_map : bool
         Skip port overview map generation (default: False)
+    no_title : bool
+        Omit the map title from PNG output (default: False)
+    no_labels : bool
+        Omit station name annotations from PNG output (default: False)
+    no_legend : bool
+        Omit the legend from PNG output (default: False)
     verbose : bool
         Enable verbose logging (default: False)
 
@@ -1262,6 +1271,9 @@ def process(
                 lon_bounds=lon_bounds,
                 figsize=figsize,
                 no_ports=no_port_map,
+                no_title=no_title,
+                no_labels=no_labels,
+                no_legend=no_legend,
                 verbose=verbose,
                 max_depth=max_depth,
             )
