@@ -99,7 +99,13 @@ def deserialize_inline_definition(
 
 
 def serialize_definition(
-    obj: PointDefinition | LineDefinition | AreaDefinition | ClusterDefinition | LegDefinition,
+    obj: (
+        PointDefinition
+        | LineDefinition
+        | AreaDefinition
+        | ClusterDefinition
+        | LegDefinition
+    ),
     allowed_fields: list[str] | set[str],
 ) -> dict[str, Any]:
     """

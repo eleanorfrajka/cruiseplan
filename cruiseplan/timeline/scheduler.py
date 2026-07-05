@@ -10,6 +10,7 @@ with a focus on:
 """
 
 import logging
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -669,6 +670,18 @@ class TimelineGenerator:
         leg_delay = getattr(leg, "delay_start", None) or 0.0
         if leg_delay:
             self.current_time = self.current_time + timedelta(minutes=leg_delay)
+
+        # buffer_time is validated and stored but not yet applied to the schedule.
+        # TODO: insert a contingency block after the last scientific station,
+        # before the return transit, so buffer time appears in the timeline.
+        buffer_time = getattr(leg, "buffer_time", None)
+        if buffer_time:
+            warnings.warn(
+                f"Leg '{leg.name}' has buffer_time={buffer_time} min, but buffer time "
+                "is not yet applied to the schedule. Set it to 0 to suppress this warning.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         activities = []
 

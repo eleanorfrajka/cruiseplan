@@ -92,7 +92,7 @@ Examples:
   cruiseplan pangaea "CTD temperature" --lat 50 60 --lon -50 -30
   cruiseplan stations --lat 50 65 --lon -60 -30
   cruiseplan enrich -c cruise.yaml --add-depths --add-coords
-  cruiseplan validate -c cruise.yaml --check-depths
+  cruiseplan validate -c cruise.yaml
   cruiseplan schedule -c cruise.yaml -o results/
   cruiseplan map -c cruise.yaml --figsize 14 10
 
@@ -460,9 +460,10 @@ Examples:
 
     # Primary operation flags
     validate_parser.add_argument(
-        "--check-depths",
-        action="store_true",
-        help="Compare existing depths with bathymetry data",
+        "--no-depth-check",
+        action="store_false",
+        dest="check_depths",
+        help="Skip comparison of existing depths with bathymetry data",
     )
     validate_parser.add_argument(
         "--tolerance",
@@ -658,17 +659,18 @@ with smart defaults and flexible control.
 
 Key Features:
 - Smart defaults: All enrichment options enabled by default
-- Flexible execution: Control which steps run with --only-* and --no-* flags
+- Flexible execution: Control which steps run with --no-* flags
 - Consistent output naming: Use --output for base filename across all files
 - Modern parameter names: Shorter --bathy-* parameters for reduced typing
 
 Examples:
   cruiseplan process -c cruise.yaml                             # Full processing
   cruiseplan process -c cruise.yaml --output expedition_2024   # Custom filename
-  cruiseplan process -c cruise.yaml --only-enrich --no-sections # Only enrichment
-  cruiseplan process -c cruise.yaml --only-validate --tolerance 5.0 # Validation
-  cruiseplan process -c cruise.yaml --only-map --format png    # Only map generation
-  cruiseplan process -c cruise.yaml --no-map                   # Skip maps only
+  cruiseplan process -c cruise.yaml --no-map                   # Skip map generation
+  cruiseplan process -c cruise.yaml --no-validate              # Skip validation
+  cruiseplan enrich   -c cruise.yaml                           # Enrichment only
+  cruiseplan validate -c cruise.yaml                           # Validation only
+  cruiseplan map      -c cruise.yaml --format png              # Map only
         """,
     )
     # Required arguments
@@ -680,23 +682,7 @@ Examples:
         help="Input YAML configuration file",
     )
 
-    # Primary operation flags
-    # Processing mode flags (mutually exclusive --only-* modes)
-    process_parser.add_argument(
-        "--only-enrich", action="store_true", help="Only run enrichment step"
-    )
-    process_parser.add_argument(
-        "--only-validate",
-        action="store_true",
-        help="Only run validation step (no enrichment or map)",
-    )
-    process_parser.add_argument(
-        "--only-map",
-        action="store_true",
-        help="Only run map generation (no enrichment or validation)",
-    )
-
-    # Processing step control flags (for full processing mode)
+    # Processing step control flags
     process_parser.add_argument(
         "--no-enrich", action="store_true", help="Skip enrichment step"
     )
@@ -723,12 +709,6 @@ Examples:
         action="store_true",
         help="Skip expanding CTD sections (default: sections expanded)",
     )
-    process_parser.add_argument(
-        "--no-ports",
-        action="store_true",
-        help="Skip expanding port references (default: ports expanded)",
-    )
-
     # Validation options
     process_parser.add_argument(
         "--no-depth-check",

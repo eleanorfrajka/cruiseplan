@@ -477,6 +477,7 @@ class Leg(BaseOrganizationUnit):
         self.turnaround_time: float | None = None
         self.distance_between_stations: float | None = None
         self.delay_start: float | None = None
+        self.buffer_time: float | None = None
 
     def add_operation(self, operation: BaseOperation) -> None:
         """
@@ -711,9 +712,7 @@ class Leg(BaseOrganizationUnit):
         """
         return (self.arrival_port.latitude, self.arrival_port.longitude)
 
-    def get_operational_entry_point(
-        self, resolver=None
-    ) -> tuple[float, float] | None:
+    def get_operational_entry_point(self, resolver=None) -> tuple[float, float] | None:
         """
         Get the geographic entry point for operations within this leg.
 
@@ -737,9 +736,7 @@ class Leg(BaseOrganizationUnit):
                 return (details["lat"], details["lon"])
         return None
 
-    def get_operational_exit_point(
-        self, resolver=None
-    ) -> tuple[float, float] | None:
+    def get_operational_exit_point(self, resolver=None) -> tuple[float, float] | None:
         """
         Get the geographic exit point for operations within this leg.
 

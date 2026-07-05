@@ -299,7 +299,6 @@ class PointOperation(BaseOperation):
                 else 60.0
             )
         elif self.op_type == "port":
-            # Ports typically have no operation duration (mobilization/demobilization time is separate)
             return 0.0
         elif self.op_type == "waypoint":
             # Waypoints have no operation duration by default (waiting time is handled separately)
@@ -431,7 +430,7 @@ class PointOperation(BaseOperation):
             position=pos,
             operation_depth=None,  # Ports don't have operation depth
             water_depth=None,  # Ports don't need water depth
-            duration=0.0,  # Ports have no operation duration
+            duration=obj.duration if obj.duration else 0.0,
             comment=getattr(obj, "description", None),
             op_type="port",
             action=getattr(

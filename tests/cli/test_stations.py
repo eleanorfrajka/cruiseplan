@@ -140,7 +140,7 @@ class TestMainCommand:
             output_file=None,
             bathy_source="etopo2022",
             bathy_dir=Path("data"),
-            high_resolution=False,
+            bathy_stride=10,
             verbose=False,
             quiet=False,
         )
@@ -174,7 +174,7 @@ class TestMainCommand:
             output_file=None,
             bathy_source="etopo2022",
             bathy_dir=Path("data"),
-            high_resolution=False,
+            bathy_stride=10,
             verbose=False,
             quiet=False,
         )
