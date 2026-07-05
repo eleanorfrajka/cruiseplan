@@ -300,8 +300,8 @@ def _resolve_cli_to_api_params(args: Any, command: str) -> dict:
     if command in ["validate", "enrich", "process"]:
         param_map.update(
             {
-                "bathy_source": getattr(args, "bathy_source", "etopo2022"),
-                "bathy_dir": getattr(args, "bathy_dir", "data"),
+                "bathy_source": getattr(args, "bathy_source", "gebco2025"),
+                "bathy_dir": getattr(args, "bathy_dir", "data/bathymetry"),
             }
         )
 
@@ -345,7 +345,7 @@ def _resolve_cli_to_api_params(args: Any, command: str) -> dict:
                 "run_map_generation": getattr(args, "run_map_generation", True),
                 "depth_check": getattr(args, "validate_depths", True),
                 "tolerance": getattr(args, "tolerance", 10.0),
-                "no_port_map": getattr(args, "no_port_map", False),
+                "no_ports": getattr(args, "no_ports", False),
             }
         )
 
@@ -362,7 +362,7 @@ def _resolve_cli_to_api_params(args: Any, command: str) -> dict:
     if command == "bathymetry":
         # Bathymetry command doesn't accept common parameters like verbose
         param_map = {
-            "bathy_source": getattr(args, "bathy_source", "etopo2022"),
+            "bathy_source": getattr(args, "bathy_source", "gebco2025"),
             "output_dir": getattr(args, "output_dir", None),
             "citation": getattr(args, "citation", False),
         }

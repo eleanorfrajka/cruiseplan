@@ -38,7 +38,7 @@ class TestProcessThinCLI:
             format="all",
             bathy_stride=10,
             figsize=None,
-            no_port_map=False,
+            no_ports=False,
             no_title=False,
             no_labels=False,
             no_legend=False,
@@ -88,7 +88,7 @@ class TestProcessThinCLI:
                 lat_bounds=None,
                 lon_bounds=None,
                 figsize=None,
-                no_port_map=False,
+                no_ports=False,
                 no_title=False,
                 no_labels=False,
                 no_legend=False,
@@ -115,7 +115,7 @@ class TestProcessThinCLI:
             format="html",
             bathy_stride=20,
             figsize=[12, 8],
-            no_port_map=True,
+            no_ports=True,
             no_title=False,
             no_labels=False,
             no_legend=False,
@@ -156,7 +156,7 @@ class TestProcessThinCLI:
                 lat_bounds=None,
                 lon_bounds=None,
                 figsize=[12, 8],
-                no_port_map=True,
+                no_ports=True,
                 no_title=False,
                 no_labels=False,
                 no_legend=False,
@@ -303,7 +303,7 @@ class TestProcessThinCLI:
                 config_file=Path("test.yaml"),
                 output_dir="data",  # default
                 output=None,  # default
-                bathy_source="etopo2022",  # default
+                bathy_source="gebco2025",  # default
                 bathy_dir="data/bathymetry",  # default
                 add_depths=True,  # default
                 add_coords=True,  # default
@@ -318,7 +318,7 @@ class TestProcessThinCLI:
                 lat_bounds=None,  # default
                 lon_bounds=None,  # default
                 figsize=None,  # default
-                no_port_map=False,  # default
+                no_ports=False,  # default
                 no_title=False,  # default
                 no_labels=False,  # default
                 no_legend=False,  # default

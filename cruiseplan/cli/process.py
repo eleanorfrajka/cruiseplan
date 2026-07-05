@@ -26,7 +26,7 @@ def main(args: argparse.Namespace) -> None:
             config_file=args.config_file,
             output_dir=str(getattr(args, "output_dir", "data")),
             output=getattr(args, "output", None),
-            bathy_source=getattr(args, "bathy_source", "etopo2022"),
+            bathy_source=getattr(args, "bathy_source", "gebco2025"),
             bathy_dir=getattr(args, "bathy_dir", "data/bathymetry"),
             # CLI uses --no-* flags; API uses positive parameter names. Translation here.
             add_depths=not (
@@ -48,7 +48,7 @@ def main(args: argparse.Namespace) -> None:
             lat_bounds=getattr(args, "lat", None),
             lon_bounds=getattr(args, "lon", None),
             figsize=getattr(args, "figsize", None),
-            no_port_map=getattr(args, "no_port_map", False),
+            no_ports=getattr(args, "no_ports", False),
             no_title=getattr(args, "no_title", False),
             no_labels=getattr(args, "no_labels", False),
             no_legend=getattr(args, "no_legend", False),
@@ -131,8 +131,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bathy-source",
-        default="etopo2022",
-        help="Bathymetry data source (default: etopo2022)",
+        default="gebco2025",
+        help="Bathymetry data source (default: gebco2025)",
     )
     parser.add_argument(
         "--bathy-dir", default="data/bathymetry", help="Bathymetry data directory"

@@ -10,6 +10,12 @@ import argparse
 import sys
 from pathlib import Path
 
+from cruiseplan.config.values import (
+    BATHY_SOURCES,
+    DEFAULT_BATHY_DIR,
+    DEFAULT_BATHY_SOURCE,
+)
+
 try:
     from cruiseplan._version import __version__
 except ImportError:
@@ -152,16 +158,12 @@ Examples:
     # Bathymetry options
     bathymetry_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        default="etopo2022",
-        help="Bathymetry dataset to download (default: etopo2022)",
+        choices=BATHY_SOURCES,
+        default=DEFAULT_BATHY_SOURCE,
+        help="Bathymetry dataset to download (default: gebco2025)",
+    )
+    bathymetry_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
 
     # --- 2. Schedule Subcommand ---
@@ -208,22 +210,15 @@ Examples:
     # Bathymetry options
     schedule_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        default="etopo2022",
-        help="Bathymetry dataset for PNG maps (default: etopo2022)",
+        choices=BATHY_SOURCES,
+        default=DEFAULT_BATHY_SOURCE,
+        help="Bathymetry dataset for PNG maps (default: gebco2025)",
     )
     schedule_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
     schedule_parser.add_argument(
         "--bathy-stride",
@@ -291,6 +286,9 @@ Examples:
         action="store_true",
         help="Omit legend from PNG schedule maps",
     )
+    schedule_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
 
     # --- 3. Stations Subcommand ---
     stations_parser = subparsers.add_parser(
@@ -340,22 +338,15 @@ Examples:
     # Bathymetry options
     stations_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        default="etopo2022",
-        help="Bathymetry dataset (default: etopo2022)",
+        choices=BATHY_SOURCES,
+        default=DEFAULT_BATHY_SOURCE,
+        help="Bathymetry dataset (default: gebco2025)",
     )
     stations_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
     stations_parser.add_argument(
         "--bathy-contours",
@@ -376,8 +367,11 @@ Examples:
         "--max-depth",
         type=int,
         default=None,
-        metavar="DEPTH",
+        metavar="METRES",
         help="Maximum water depth (m) for the colour scale (e.g. 500 to focus on shelf seas)",
+    )
+    stations_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
 
     # --- 4. Enrich Subcommand ---
@@ -422,22 +416,15 @@ Examples:
     # Bathymetry options
     enrich_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        default="etopo2022",
-        help="Bathymetry dataset (default: etopo2022)",
+        choices=BATHY_SOURCES,
+        default=DEFAULT_BATHY_SOURCE,
+        help="Bathymetry dataset (default: gebco2025)",
     )
     enrich_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
 
     # General options
@@ -475,22 +462,15 @@ Examples:
     # Bathymetry options
     validate_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        default="etopo2022",
-        help="Bathymetry dataset (default: etopo2022)",
+        choices=BATHY_SOURCES,
+        default=DEFAULT_BATHY_SOURCE,
+        help="Bathymetry dataset (default: gebco2025)",
     )
     validate_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
 
     # General options
@@ -498,6 +478,9 @@ Examples:
         "--warnings-only",
         action="store_true",
         help="Show warnings without failing",
+    )
+    validate_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
 
     # --- 7. Map Subcommand ---
@@ -571,22 +554,15 @@ Examples:
     # Bathymetry options
     map_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
+        choices=BATHY_SOURCES,
         default="gebco2025",
         help="Bathymetry dataset (default: gebco2025)",
     )
     map_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
     map_parser.add_argument(
         "--bathy-stride",
@@ -740,22 +716,15 @@ Examples:
     # Bathymetry options
     process_parser.add_argument(
         "--bathy-source",
-        default="etopo2022",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        help="Bathymetry dataset (default: etopo2022)",
+        default=DEFAULT_BATHY_SOURCE,
+        choices=BATHY_SOURCES,
+        help="Bathymetry dataset (default: gebco2025)",
     )
     process_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
     process_parser.add_argument(
         "--bathy-stride",
@@ -803,9 +772,9 @@ Examples:
         help="Figure size for PNG maps (width height, default: 12 8)",
     )
     process_parser.add_argument(
-        "--no-port-map",
+        "--no-ports",
         action="store_true",
-        help="Skip plotting ports on generated maps (default: ports plotted)",
+        help="Exclude ports from generated maps (default: ports plotted)",
     )
     process_parser.add_argument(
         "--no-title",
@@ -1005,22 +974,15 @@ Examples:
     # PNG format specific options
     stationplan_parser.add_argument(
         "--bathy-source",
-        choices=[
-            "etopo2022",
-            "gebco2023",
-            "gebco2025",
-            "msm142",
-            "msm142_jj",
-            "msm142_dt",
-        ],
-        default="etopo2022",
-        help="Bathymetry dataset for PNG maps (default: etopo2022)",
+        choices=BATHY_SOURCES,
+        default=DEFAULT_BATHY_SOURCE,
+        help="Bathymetry dataset for PNG maps (default: gebco2025)",
     )
     stationplan_parser.add_argument(
         "--bathy-dir",
         type=Path,
-        default=Path("data"),
-        help="Directory containing bathymetry data (default: data)",
+        default=Path(DEFAULT_BATHY_DIR),
+        help="Directory containing bathymetry data (default: data/bathymetry)",
     )
     stationplan_parser.add_argument(
         "--bathy-stride",
@@ -1049,6 +1011,9 @@ Examples:
         type=float,
         metavar=("MIN", "MAX"),
         help="Longitude bounds for map extent (e.g., --lon -40 -20)",
+    )
+    stationplan_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
 
     # Parse args
