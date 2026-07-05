@@ -477,6 +477,7 @@ class Leg(BaseOrganizationUnit):
         self.turnaround_time: float | None = None
         self.distance_between_stations: float | None = None
         self.delay_start: float | None = None
+        self.buffer_time: float | None = None
 
     def add_operation(self, operation: BaseOperation) -> None:
         """
