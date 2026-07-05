@@ -619,9 +619,7 @@ def save_campaign_data(
         raise ValueError(f"Error saving pickle file: {e}")
 
 
-def load_campaign_data(
-    file_path: str | Path, merge_tracks: bool = True
-) -> list[dict]:
+def load_campaign_data(file_path: str | Path, merge_tracks: bool = True) -> list[dict]:
     """
     Load pre-processed PANGAEA campaign data from pickle file.
 

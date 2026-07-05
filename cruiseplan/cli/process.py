@@ -28,12 +28,19 @@ def main(args: argparse.Namespace) -> None:
             output=getattr(args, "output", None),
             bathy_source=getattr(args, "bathy_source", "etopo2022"),
             bathy_dir=getattr(args, "bathy_dir", "data/bathymetry"),
-            add_depths=getattr(args, "add_depths", True),
-            add_coords=getattr(args, "add_coords", True),
-            expand_sections=getattr(args, "expand_sections", True),
-            run_validation=getattr(args, "run_validation", True),
-            run_map_generation=getattr(args, "run_map_generation", True),
-            depth_check=getattr(args, "depth_check", True),
+            # CLI uses --no-* flags; API uses positive parameter names. Translation here.
+            add_depths=not (
+                getattr(args, "no_enrich", False) or getattr(args, "no_depths", False)
+            ),
+            add_coords=not (
+                getattr(args, "no_enrich", False) or getattr(args, "no_coords", False)
+            ),
+            expand_sections=not (
+                getattr(args, "no_enrich", False) or getattr(args, "no_sections", False)
+            ),
+            run_validation=not getattr(args, "no_validate", False),
+            run_map_generation=not getattr(args, "no_map", False),
+            depth_check=not getattr(args, "no_depth_check", False),
             tolerance=getattr(args, "tolerance", 10.0),
             format=getattr(args, "format", "all"),
             bathy_stride=getattr(args, "bathy_stride", 10),

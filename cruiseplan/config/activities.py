@@ -212,9 +212,7 @@ class PointDefinition(FlexibleLocationModel):
         None, description="Water depth at location (seafloor depth)"
     )
     duration: float | None = None
-    delay_start: float | None = (
-        None  # Time to wait before operation begins (minutes)
-    )
+    delay_start: float | None = None  # Time to wait before operation begins (minutes)
     delay_end: float | None = None  # Time to wait after operation ends (minutes)
     comment: str | None = None
     equipment: str | None = None

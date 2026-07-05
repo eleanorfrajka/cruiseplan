@@ -113,7 +113,10 @@ if __name__ == "__main__":
         "-c", "--config-file", type=Path, required=True, help="Input YAML file"
     )
     parser.add_argument(
-        "--check-depths", action="store_true", help="Check depth accuracy"
+        "--no-depth-check",
+        action="store_false",
+        dest="check_depths",
+        help="Skip depth accuracy check",
     )
     parser.add_argument(
         "--warnings-only", action="store_true", help="Show warnings without failing"

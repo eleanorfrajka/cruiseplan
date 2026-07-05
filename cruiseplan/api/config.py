@@ -67,9 +67,6 @@ class VisualizationConfig:
     include_ports: bool = True
     """Whether to include ports on the map"""
 
-    include_eez: bool = True
-    """Whether to include EEZ boundaries on interactive maps"""
-
 
 @dataclass
 class ProcessConfig:
@@ -288,9 +285,6 @@ class StationsConfig:
 
     bathy_dir: str = "data/bathymetry"
     """Directory containing bathymetry data"""
-
-    high_resolution: bool = False
-    """Use high resolution bathymetry data"""
 
     overwrite: bool = False
     """Overwrite existing output files"""

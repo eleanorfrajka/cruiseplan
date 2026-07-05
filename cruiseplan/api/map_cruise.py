@@ -68,7 +68,6 @@ def map_with_config(
         figsize=config.visualization.figsize,
         show_plot=config.visualization.show_plot,
         no_ports=not config.visualization.include_ports,
-        include_eez=config.visualization.include_eez,
         verbose=config.output.verbose,
     )
 
@@ -87,7 +86,6 @@ def map(
     figsize: list | None = None,
     show_plot: bool = False,
     no_ports: bool = False,
-    include_eez: bool = True,
     no_title: bool = False,
     no_labels: bool = False,
     no_legend: bool = False,
@@ -119,9 +117,6 @@ def map(
         Display plot interactively (default: False)
     no_ports : bool
         Suppress plotting of departure and arrival ports (default: False)
-    include_eez : bool
-        Include EEZ boundaries on interactive maps (default: True).
-        Boundaries are for visualization only and may not reflect official agreements.
     no_title : bool
         Omit the map title from PNG output (default: False)
     no_labels : bool

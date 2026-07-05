@@ -70,7 +70,6 @@ class TestMapThinCLI:
                 no_title=False,
                 no_labels=False,
                 no_legend=False,
-                include_eez=True,
                 verbose=False,
                 max_depth=None,
             )
@@ -125,7 +124,6 @@ class TestMapThinCLI:
                 no_title=False,
                 no_labels=False,
                 no_legend=False,
-                include_eez=True,
                 verbose=True,
                 max_depth=None,
             )
@@ -299,7 +297,6 @@ class TestMapThinCLI:
                 no_title=False,  # default
                 no_labels=False,  # default
                 no_legend=False,  # default
-                include_eez=True,  # default
                 verbose=False,  # default
                 max_depth=None,  # default
             )

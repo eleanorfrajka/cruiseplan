@@ -300,8 +300,8 @@ def _log_configuration_info(
     logger.info(f"Bathymetry source: {bathy_source}")
     logger.info(f"Bathymetry stride: {bathy_stride}")
 
-    # Performance warning for GEBCO + high-resolution combination
-    if bathy_source == "gebco2025" and high_resolution:
+    # Performance warning for GEBCO 2025 at full resolution
+    if bathy_source == "gebco2025" and bathy_stride == 1:
         logger.warning("⚠️  PERFORMANCE WARNING:")
         logger.warning(
             "   GEBCO 2025 with stride=1 can be very slow for interactive use!"
