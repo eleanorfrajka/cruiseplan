@@ -972,9 +972,14 @@ def stationplan_forecast_png(
     bathy_source: str = "gebco2025",
     bathy_dir: str = "data/bathymetry",
     bathy_stride: int = 10,
-    figsize: tuple[float, float] = (12.0, 8.0),
+    figsize: tuple[float, float] = (10.0, 8.1),
     lat_bounds: list[float] = None,
     lon_bounds: list[float] = None,
+    max_depth: int | None = None,
+    bathy_contours: list[float] | None = None,
+    no_title: bool = False,
+    no_labels: bool = False,
+    no_legend: bool = False,
 ) -> StationplanResult:
     """
     Generate PNG map forecast from a cruise schedule for a specific time window.
@@ -996,17 +1001,27 @@ def stationplan_forecast_png(
     output_path : Union[str, Path, None], optional
         Path to output PNG file, by default None
     bathy_source : str, optional
-        Bathymetry dataset to use, by default "etopo2022"
+        Bathymetry dataset to use, by default "gebco2025"
     bathy_dir : str, optional
-        Directory containing bathymetry data, by default "data"
+        Directory containing bathymetry data, by default "data/bathymetry"
     bathy_stride : int, optional
-        Bathymetry contour stride, by default 10
+        Bathymetry grid downsampling factor, by default 10
     figsize : tuple[float, float], optional
-        Figure size in inches, by default (12.0, 8.0)
+        Figure size in inches, by default (10.0, 8.1)
     lat_bounds : list[float], optional
         Latitude bounds [min, max], by default None
     lon_bounds : list[float], optional
         Longitude bounds [min, max], by default None
+    max_depth : int, optional
+        Maximum water depth (m) for the bathymetry colour scale, by default None
+    bathy_contours : list[float], optional
+        Explicit contour depths in metres, by default None
+    no_title : bool, optional
+        Suppress the map title, by default False
+    no_labels : bool, optional
+        Suppress station name labels, by default False
+    no_legend : bool, optional
+        Suppress the map legend, by default False
 
     Returns
     -------
@@ -1114,6 +1129,11 @@ def stationplan_forecast_png(
             figsize=figsize,
             no_ports=True,  # Focus on operations, not ports for forecast
             config=None,  # No cruise config needed for forecast
+            max_depth=max_depth,
+            bathy_contours=bathy_contours,
+            no_title=no_title,
+            no_labels=no_labels,
+            no_legend=no_legend,
         )
 
         if map_file:
