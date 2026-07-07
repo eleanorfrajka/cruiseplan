@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>cruiseplan.api.map_cruise &mdash; CruisePlan v0.0.post1 v0.0.post1.dev113</title>
+  <title>cruiseplan.api.map_cruise &mdash; CruisePlan v0.0.post1 v0.0.post1.dev123</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=393fce2e" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9d69c08a"></script>
+      <script src="../../../_static/documentation_options.js?v=3039b046"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -98,7 +98,6 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.api.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">MapConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.api.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MapResult</span>
@@ -109,7 +108,7 @@
 <div class="viewcode-block" id="map_with_config">
 <a class="viewcode-back" href="../../../api/cruiseplan.api.html#cruiseplan.api.map_with_config">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">map_with_config</span><span class="p">(</span>
-    <span class="n">config_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">MapConfig</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MapResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -162,7 +161,6 @@
         <span class="n">figsize</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">visualization</span><span class="o">.</span><span class="n">figsize</span><span class="p">,</span>
         <span class="n">show_plot</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">visualization</span><span class="o">.</span><span class="n">show_plot</span><span class="p">,</span>
         <span class="n">no_ports</span><span class="o">=</span><span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">visualization</span><span class="o">.</span><span class="n">include_ports</span><span class="p">,</span>
-        <span class="n">include_eez</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">visualization</span><span class="o">.</span><span class="n">include_eez</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
     <span class="p">)</span></div>
 
@@ -171,22 +169,24 @@
 <div class="viewcode-block" id="map">
 <a class="viewcode-back" href="../../../api/cruiseplan.api.html#cruiseplan.api.map">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span>
-    <span class="n">config_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-    <span class="n">output</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
-    <span class="n">bathy_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;etopo2022&quot;</span><span class="p">,</span>
-    <span class="n">bathy_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+    <span class="n">bathy_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gebco2025&quot;</span><span class="p">,</span>
+    <span class="n">bathy_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data/bathymetry&quot;</span><span class="p">,</span>
     <span class="n">bathy_stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-    <span class="n">bathy_contours</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">lat_bounds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">lon_bounds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">figsize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bathy_contours</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lat_bounds</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lon_bounds</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">figsize</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">show_plot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">no_ports</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">include_eez</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">no_title</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">no_labels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">no_legend</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">max_depth</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MapResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate cruise track map (mirrors: cruiseplan map).</span>
@@ -202,20 +202,23 @@
 <span class="sd">    format : str</span>
 <span class="sd">        Map output format: &quot;png&quot;, &quot;kml&quot;, or &quot;all&quot; (default: &quot;all&quot;)</span>
 <span class="sd">    bathy_source : str</span>
-<span class="sd">        Bathymetry dataset (default: &quot;etopo2022&quot;)</span>
+<span class="sd">        Bathymetry dataset (default: &quot;gebco2025&quot;)</span>
 <span class="sd">    bathy_dir : str</span>
-<span class="sd">        Directory containing bathymetry data (default: &quot;data&quot;)</span>
+<span class="sd">        Directory containing bathymetry data (default: &quot;data/bathymetry&quot;)</span>
 <span class="sd">    bathy_stride : int</span>
 <span class="sd">        Bathymetry contour stride for map background (default: 5)</span>
 <span class="sd">    figsize : list</span>
-<span class="sd">        Figure size for PNG maps [width, height] (default: [12, 8])</span>
+<span class="sd">        Figure size for PNG maps [width, height] (default: [10, 8.1])</span>
 <span class="sd">    show_plot : bool</span>
 <span class="sd">        Display plot interactively (default: False)</span>
 <span class="sd">    no_ports : bool</span>
 <span class="sd">        Suppress plotting of departure and arrival ports (default: False)</span>
-<span class="sd">    include_eez : bool</span>
-<span class="sd">        Include EEZ (Exclusive Economic Zone) boundaries on interactive maps (default: True).</span>
-<span class="sd">        Note: Boundaries are for visualization only and may not reflect official agreements.</span>
+<span class="sd">    no_title : bool</span>
+<span class="sd">        Omit the map title from PNG output (default: False)</span>
+<span class="sd">    no_labels : bool</span>
+<span class="sd">        Omit station name annotations from PNG output (default: False)</span>
+<span class="sd">    no_legend : bool</span>
+<span class="sd">        Omit the legend from PNG output (default: False)</span>
 <span class="sd">    verbose : bool</span>
 <span class="sd">        Enable verbose logging (default: False)</span>
 
@@ -232,15 +235,16 @@
 <span class="sd">    &gt;&gt;&gt; # Generate KML map with custom size</span>
 <span class="sd">    &gt;&gt;&gt; cruiseplan.map(config_file=&quot;cruise.yaml&quot;, format=&quot;kml&quot;, figsize=[16, 10])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.api.init_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_parse_map_formats</span><span class="p">,</span> <span class="n">_setup_verbose_logging</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.api.init_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_parse_map_formats</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.output.kml_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_kml_catalog</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.output.map_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_map</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.runtime.cruise</span><span class="w"> </span><span class="kn">import</span> <span class="n">CruiseInstance</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cruiseplan.utils.logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">configure_logging</span>
 
-    <span class="n">_setup_verbose_logging</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">configure_logging</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">figsize</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">figsize</span> <span class="o">=</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+        <span class="n">figsize</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mf">8.1</span><span class="p">]</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># Load cruise configuration - direct core call</span>
@@ -271,7 +275,10 @@
                 <span class="n">lon_bounds</span><span class="o">=</span><span class="n">lon_bounds</span><span class="p">,</span>
                 <span class="n">figsize</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">figsize</span><span class="p">),</span>
                 <span class="n">show_plot</span><span class="o">=</span><span class="n">show_plot</span><span class="p">,</span>
-                <span class="n">include_ports</span><span class="o">=</span><span class="ow">not</span> <span class="n">no_ports</span><span class="p">,</span>  <span class="c1"># Convert no_ports to include_ports</span>
+                <span class="n">include_ports</span><span class="o">=</span><span class="ow">not</span> <span class="n">no_ports</span><span class="p">,</span>
+                <span class="n">no_title</span><span class="o">=</span><span class="n">no_title</span><span class="p">,</span>
+                <span class="n">no_labels</span><span class="o">=</span><span class="n">no_labels</span><span class="p">,</span>
+                <span class="n">no_legend</span><span class="o">=</span><span class="n">no_legend</span><span class="p">,</span>
                 <span class="n">max_depth</span><span class="o">=</span><span class="n">max_depth</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
